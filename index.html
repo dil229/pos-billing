@@ -1,18 +1,19 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
- <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Master ERP Engine - Cloud POS Billing System</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <style>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master ERP Engine - Cloud POS & Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { background-color: #eef2f5; margin: 0; padding: 15px; color: #111; }
         .master-bar { max-width: 850px; margin: 0 auto 15px auto; display: flex; justify-content: space-between; align-items: center; background: #111; color: #fff; padding: 10px 18px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .master-brand { font-size: 15px; font-weight: 800; letter-spacing: 0.5px; }
+        .master-brand { font-size: 15px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
         .cloud-status { font-size: 11px; font-weight: bold; background: #28a745; color: white; padding: 3px 8px; border-radius: 12px; }
+        .nav-actions { display: flex; gap: 8px; }
         .app-card { max-width: 850px; margin: 0 auto; background: #fff; padding: 35px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.06); border-top: 6px solid var(--theme-color, #0056b3); }
         :root { --theme-color: #0056b3; --theme-bg: #eef4fc; }
         body.theme-computer { --theme-color: #0056b3; --theme-bg: #eef4fc; }
@@ -31,7 +32,7 @@
         .btn-green { background: #198754; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; font-weight: bold; width: 100%; font-size: 13px; }
         .btn-theme { background: var(--theme-color); color: white; border: none; padding: 8px 14px; cursor: pointer; border-radius: 5px; font-weight: bold; }
         .btn-dark { background: #212529; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; font-weight: bold; width: 100%; }
-        .btn-red { background: #dc3545; color: white; border: none; padding: 3px 7px; cursor: pointer; border-radius: 3px; font-weight: bold; }
+        .btn-red { background: #dc3545; color: white; border: none; padding: 4px 8px; cursor: pointer; border-radius: 3px; font-weight: bold; }
         .info-box { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 12px 15px; display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px; font-weight: 600; line-height: 1.6; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         th { background-color: var(--theme-bg); color: var(--theme-color); text-align: left; padding: 10px; font-size: 13px; font-weight: 800; border-bottom: 2px solid var(--theme-color); }
@@ -45,155 +46,206 @@
         .signatures { display: flex; justify-content: space-between; margin-top: 50px; font-size: 12px; font-weight: 600; }
         .sig-line { border-top: 1px dashed #777; width: 180px; text-align: center; padding-top: 5px; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: #fff; padding: 22px; border-radius: 8px; width: 94%; max-width: 650px; max-height: 88vh; overflow-y: auto; }
+        .modal-content { background: #fff; padding: 22px; border-radius: 8px; width: 94%; max-width: 750px; max-height: 90vh; overflow-y: auto; }
+        
+        .dash-stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: var(--theme-bg); padding: 15px; border-radius: 8px; border-left: 4px solid var(--theme-color); }
+        .stat-val { font-size: 20px; font-weight: 900; color: var(--theme-color); margin-top: 4px; }
+        .stat-lbl { font-size: 11px; font-weight: 700; color: #666; text-transform: uppercase; }
+        @media (max-width: 600px) { .dash-stats-grid { grid-template-columns: 1fr; } }
         @media print { .no-print { display: none !important; } }
     </style>
- </head>
- <body>
-  <div class="master-bar no-print">
-   <div class="master-brand">
-    Master ERP System <span class="cloud-status">☁️ Cloud Active</span>
-   </div>
-   <button onclick="openConfigModal()" class="btn-theme" style="padding: 6px 12px; font-size: 12px;">Master Settings</button>
-  </div>
-  <div class="app-card" id="invoice-render-area">
-   <div class="header">
-    <div>
-     <div class="company-title" id="display-biz-name">Your Business Name</div>
-     <div class="company-sub" id="display-biz-sub">Business Tagline / Subtitle</div>
-     <div class="company-sub" id="display-biz-phone">Phone: 07X XXXXXXX</div>
-     <div class="company-sub" id="display-biz-address">Address: Your Business Address</div>
+</head>
+<body>
+
+    <div class="master-bar no-print">
+        <div class="master-brand">
+            <span>Master ERP</span>
+            <span class="cloud-status">☁️ Cloud Sync</span>
+        </div>
+        <div class="nav-actions">
+            <button onclick="openDashboardModal()" class="btn-theme" style="background:#0d6efd; padding: 6px 12px; font-size: 12px;">📊 Sales History</button>
+            <button onclick="openConfigModal()" class="btn-theme" style="padding: 6px 12px; font-size: 12px;">⚙️ Master Settings</button>
+        </div>
     </div>
-    <div>
-     <img id="display-logo" class="logo-img" alt="Logo">
+
+    <div class="app-card" id="invoice-render-area">
+        <div class="header">
+            <div>
+                <div class="company-title" id="display-biz-name">Your Business Name</div>
+                <div class="company-sub" id="display-biz-sub">Business Tagline / Subtitle</div>
+                <div class="company-sub" id="display-biz-phone">Phone: 07X XXXXXXX</div>
+                <div class="company-sub" id="display-biz-address">Address: Your Business Address</div>
+            </div>
+            <div><img id="display-logo" class="logo-img" alt="Logo"></div>
+        </div>
+
+        <div class="doc-badge" id="lbl-doc-title">INVOICE</div>
+
+        <div class="input-section no-print">
+            <div class="input-grid">
+                <input type="text" id="cust-name-input" placeholder="Customer Name" oninput="updateHeader()">
+                <input type="text" id="cust-phone-input" placeholder="Customer Phone Number" oninput="updateHeader()">
+            </div>
+            <div class="input-grid" id="courier-fields-container">
+                <input type="text" id="cust-address-input" placeholder="Delivery Address (Optional)" oninput="updateHeader()">
+                <input type="text" id="courier-track-input" placeholder="Courier Tracking No (Optional)" oninput="updateHeader()">
+            </div>
+            <div class="input-grid">
+                <input type="text" id="inv-no-input" placeholder="Invoice No" oninput="updateHeader()">
+                <input type="text" id="item-desc" placeholder="Type Item Name...">
+            </div>
+            <div class="input-grid">
+                <input type="number" id="item-qty" value="1" placeholder="Qty">
+                <input type="text" id="item-war" placeholder="Warranty / Note / Size">
+            </div>
+            <div class="input-grid">
+                <input type="number" id="item-price" placeholder="Price (Rs.)" onkeypress="if(event.key==='Enter') addItem();">
+                <button onclick="addItem()" class="btn-theme">+ Add Item</button>
+            </div>
+            <div style="margin-top: 8px;">
+                <label style="font-size: 11px; font-weight: bold; color: var(--theme-color);">Paid Amount (Rs.):</label>
+                <input type="number" id="paid-amount-input" placeholder="Paid amount..." oninput="calculateTotals()">
+            </div>
+        </div>
+
+        <div class="info-box">
+            <div>
+                <p style="margin:2px 0;"><strong>Customer:</strong> <span id="lbl-cust">-</span></p>
+                <p style="margin:2px 0;"><strong>Phone:</strong> <span id="lbl-phone">-</span></p>
+                <p id="lbl-address-container" style="margin:2px 0; display:none;"><strong>Address:</strong> <span id="lbl-address">-</span></p>
+            </div>
+            <div style="text-align: right;">
+                <p style="margin:2px 0;"><strong>Doc No:</strong> <span id="lbl-inv">INV-1001</span></p>
+                <p style="margin:2px 0;"><strong>Date:</strong> <span id="lbl-date"></span></p>
+                <p id="lbl-tracking-container" style="margin:2px 0; display:none; color: var(--theme-color);"><strong>Tracking #:</strong> <span id="lbl-tracking">-</span></p>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 45%;">Description</th>
+                    <th class="text-center" style="width: 10%;">Qty</th>
+                    <th class="text-center" style="width: 20%;" id="th-note-col">Note / Warranty</th>
+                    <th class="text-right" style="width: 25%;">Price</th>
+                    <th class="text-center no-print" style="width: 5%;"></th>
+                </tr>
+            </thead>
+            <tbody id="bill-items"></tbody>
+        </table>
+
+        <div class="total-container">
+            <div class="summary-row"><span>Sub Total:</span><span id="lbl-subtotal">Rs. 0.00</span></div>
+            <div class="summary-row" style="font-weight:bold;"><span>Net Total:</span><span id="lbl-net-total">Rs. 0.00</span></div>
+            <div class="summary-row" id="paid-row" style="color:#198754;"><span>Paid Amount:</span><span id="lbl-paid">Rs. 0.00</span></div>
+            <div class="total-box" id="due-row"><span>Balance Due:</span><span id="lbl-due">Rs. 0.00</span></div>
+        </div>
+
+        <div class="footer-note">
+            <p style="margin: 0 0 2px 0;" id="lbl-footer-msg">THANK YOU FOR YOUR BUSINESS</p>
+            <p style="margin: 0;" id="lbl-footer-sub">NO EXCHANGE OR REFUND AFTER 7 DAYS</p>
+        </div>
+
+        <div class="signatures">
+            <div class="sig-line">Customer Signature</div>
+            <div class="sig-line">Authorized Representative</div>
+        </div>
+
+        <div class="input-grid no-print" style="margin-top: 25px;">
+            <button onclick="generatePDF('A4', 'INVOICE')" class="btn-green">Download A4 PDF Invoice</button>
+            <button onclick="generatePDF('Slip', 'INVOICE')" class="btn-dark">Download 80mm Slip PDF</button>
+        </div>
+        <div class="input-grid no-print" style="margin-top: 8px;">
+            <button onclick="generatePDF('A4', 'QUOTATION')" id="btn-quotation" class="btn-theme" style="display:none;">Download Quotation PDF</button>
+            <button onclick="shareWhatsAppInvoice()" class="btn-green" style="background:#25D366;">Send WhatsApp Bill</button>
+        </div>
+        <div class="no-print" style="margin-top: 8px;">
+            <button onclick="saveAndResetInvoice()" class="btn-theme" style="width:100%; background:#6c757d;">💾 Save Invoice & New Bill</button>
+        </div>
     </div>
-   </div>
-   <div class="doc-badge" id="lbl-doc-title">INVOICE</div>
-   <div class="input-section no-print">
-    <div class="input-grid">
-     <input type="text" id="cust-name-input" placeholder="Customer Name" oninput="updateHeader()"> <input type="text" id="cust-phone-input" placeholder="Customer Phone Number" oninput="updateHeader()">
+
+    <!-- Sales History / Dashboard Modal -->
+    <div id="dashboard-modal" class="modal no-print">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ddd; padding-bottom:8px; margin-bottom:15px;">
+                <h3 style="margin:0;">📊 Sales Dashboard & Invoices History</h3>
+                <button onclick="closeDashboardModal()" class="btn-red">X Close</button>
+            </div>
+
+            <div class="dash-stats-grid">
+                <div class="stat-card">
+                    <div class="stat-lbl">Today's Sales</div>
+                    <div class="stat-val" id="dash-today-sales">Rs. 0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-lbl">Total Invoices</div>
+                    <div class="stat-val" id="dash-total-invoices">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-lbl">All-Time Revenue</div>
+                    <div class="stat-val" id="dash-total-revenue">Rs. 0.00</div>
+                </div>
+            </div>
+
+            <h4 style="margin: 15px 0 8px 0;">Recent Invoices</h4>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Inv No</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th class="text-right">Total</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dash-invoices-list">
+                        <tr><td colspan="5" class="text-center">Loading invoices...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    <div class="input-grid" id="courier-fields-container">
-     <input type="text" id="cust-address-input" placeholder="Delivery Address (Optional)" oninput="updateHeader()"> <input type="text" id="courier-track-input" placeholder="Courier Tracking No (Optional)" oninput="updateHeader()">
+
+    <!-- Master Config Modal -->
+    <div id="config-modal" class="modal no-print">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ddd; padding-bottom:8px; margin-bottom:12px;">
+                <h3 style="margin:0;">Master Settings Panel</h3>
+                <button onclick="closeConfigModal()" class="btn-red">X Close</button>
+            </div>
+            <div class="input-grid">
+                <div><label style="font-size:11px; font-weight:bold;">Unique Client Key (Letters/Numbers only):</label><input type="text" id="cfg-client-key" placeholder="e.g. store_01"></div>
+                <div><label style="font-size:11px; font-weight:bold;">Business Name:</label><input type="text" id="cfg-biz-name" placeholder="Business Name"></div>
+            </div>
+            <div class="input-grid">
+                <div><label style="font-size:11px; font-weight:bold;">Tagline:</label><input type="text" id="cfg-biz-sub" placeholder="Tagline"></div>
+                <div><label style="font-size:11px; font-weight:bold;">Phone:</label><input type="text" id="cfg-biz-phone" placeholder="Phone Number"></div>
+            </div>
+            <div class="input-grid">
+                <div><label style="font-size:11px; font-weight:bold;">Address:</label><input type="text" id="cfg-biz-address" placeholder="Address"></div>
+                <div>
+                    <label style="font-size:11px; font-weight:bold;">Business Type:</label>
+                    <select id="cfg-biz-type">
+                        <option value="Retail">General Retail (Classic Emerald)</option>
+                        <option value="Computer">Computer & Hardware (Dark Blue)</option>
+                        <option value="Clothing">Clothing & Boutique (Rose Pink)</option>
+                        <option value="Online">Online Delivery (Purple)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="input-grid">
+                <div><label style="font-size:11px; font-weight:bold;">Expiry (YYYY/MM/DD):</label><input type="text" id="cfg-expiry" placeholder="2026/12/31"></div>
+                <div><label style="font-size:11px; font-weight:bold;">Invoice Prefix:</label><input type="text" id="cfg-prefix" placeholder="INV-"></div>
+            </div>
+            <div style="margin-bottom:10px;"><label style="font-size:11px; font-weight:bold;">Logo:</label><input type="file" id="cfg-logo-input" accept="image/*" onchange="handleConfigLogoUpload(event)"></div>
+            <div style="margin-bottom:10px;"><label style="font-size:11px; font-weight:bold;">Footer Terms:</label><input type="text" id="cfg-footer-sub" placeholder="Terms & Conditions"></div>
+            <button onclick="saveMasterConfig()" class="btn-green" style="padding:12px; margin-top:10px;">Save Settings to Cloud</button>
+        </div>
     </div>
-    <div class="input-grid">
-     <input type="text" id="inv-no-input" placeholder="Invoice No" oninput="updateHeader()"> <input type="text" id="item-desc" placeholder="Type Item Name...">
-    </div>
-    <div class="input-grid">
-     <input type="number" id="item-qty" value="1" placeholder="Qty"> <input type="text" id="item-war" placeholder="Warranty / Note / Size">
-    </div>
-    <div class="input-grid">
-     <input type="number" id="item-price" placeholder="Price (Rs.)" onkeypress="if(event.key==='Enter') addItem();">
-     <button onclick="addItem()" class="btn-theme">+ Add Item</button>
-    </div>
-    <div style="margin-top: 8px;">
-     <label style="font-size: 11px; font-weight: bold; color: var(--theme-color);">Paid Amount (Rs.):</label> <input type="number" id="paid-amount-input" placeholder="Paid amount..." oninput="calculateTotals()">
-    </div>
-   </div>
-   <div class="info-box">
-    <div>
-     <p style="margin:2px 0;"><strong>Customer:</strong> <span id="lbl-cust">-</span></p>
-     <p style="margin:2px 0;"><strong>Phone:</strong> <span id="lbl-phone">-</span></p>
-     <p id="lbl-address-container" style="margin:2px 0; display:none;"><strong>Address:</strong> <span id="lbl-address">-</span></p>
-    </div>
-    <div style="text-align: right;">
-     <p style="margin:2px 0;"><strong>Doc No:</strong> <span id="lbl-inv">INV-1001</span></p>
-     <p style="margin:2px 0;"><strong>Date:</strong> <span id="lbl-date"></span></p>
-     <p id="lbl-tracking-container" style="margin:2px 0; display:none; color: var(--theme-color);"><strong>Tracking #:</strong> <span id="lbl-tracking">-</span></p>
-    </div>
-   </div>
-   <table>
-    <thead>
-     <tr>
-      <th style="width: 45%;">Description</th>
-      <th class="text-center" style="width: 10%;">Qty</th>
-      <th class="text-center" style="width: 20%;" id="th-note-col">Note / Warranty</th>
-      <th class="text-right" style="width: 25%;">Price</th>
-      <th class="text-center no-print" style="width: 5%;"></th>
-     </tr>
-    </thead>
-    <tbody id="bill-items"></tbody>
-   </table>
-   <div class="total-container">
-    <div class="summary-row">
-     <span>Sub Total:</span><span id="lbl-subtotal">Rs. 0.00</span>
-    </div>
-    <div class="summary-row" style="font-weight:bold;">
-     <span>Net Total:</span><span id="lbl-net-total">Rs. 0.00</span>
-    </div>
-    <div class="summary-row" id="paid-row" style="color:#198754;">
-     <span>Paid Amount:</span><span id="lbl-paid">Rs. 0.00</span>
-    </div>
-    <div class="total-box" id="due-row">
-     <span>Balance Due:</span><span id="lbl-due">Rs. 0.00</span>
-    </div>
-   </div>
-   <div class="footer-note">
-    <p style="margin: 0 0 2px 0;" id="lbl-footer-msg">THANK YOU FOR YOUR BUSINESS</p>
-    <p style="margin: 0;" id="lbl-footer-sub">NO EXCHANGE OR REFUND AFTER 7 DAYS</p>
-   </div>
-   <div class="signatures">
-    <div class="sig-line">Customer Signature</div>
-    <div class="sig-line">Authorized Representative</div>
-   </div>
-   <div class="input-grid no-print" style="margin-top: 25px;">
-    <button onclick="generatePDF('A4', 'INVOICE')" class="btn-green">Download A4 PDF Invoice</button>
-    <button onclick="generatePDF('Slip', 'INVOICE')" class="btn-dark">Download 80mm Slip PDF</button>
-   </div>
-   <div class="input-grid no-print" style="margin-top: 8px;">
-    <button onclick="generatePDF('A4', 'QUOTATION')" id="btn-quotation" class="btn-theme" style="display:none;">Download Quotation PDF</button>
-    <button onclick="shareWhatsAppInvoice()" class="btn-green" style="background:#25D366;">Send WhatsApp Bill</button>
-   </div>
-  </div>
-  <!-- Master Config Modal -->
-  <div id="config-modal" class="modal no-print">
-   <div class="modal-content">
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ddd; padding-bottom:8px; margin-bottom:12px;">
-     <h3 style="margin:0;">Master Settings Panel</h3>
-     <button onclick="closeConfigModal()" class="btn-red">X Close</button>
-    </div>
-    <div class="input-grid">
-     <div>
-      <label style="font-size:11px; font-weight:bold;">Unique Client Key (Letters/Numbers only):</label><input type="text" id="cfg-client-key" placeholder="e.g. store_01">
-     </div>
-     <div>
-      <label style="font-size:11px; font-weight:bold;">Business Name:</label><input type="text" id="cfg-biz-name" placeholder="Business Name">
-     </div>
-    </div>
-    <div class="input-grid">
-     <div>
-      <label style="font-size:11px; font-weight:bold;">Tagline:</label><input type="text" id="cfg-biz-sub" placeholder="Tagline">
-     </div>
-     <div>
-      <label style="font-size:11px; font-weight:bold;">Phone:</label><input type="text" id="cfg-biz-phone" placeholder="Phone Number">
-     </div>
-    </div>
-    <div class="input-grid">
-     <div>
-      <label style="font-size:11px; font-weight:bold;">Address:</label><input type="text" id="cfg-biz-address" placeholder="Address">
-     </div>
-     <div>
-      <label style="font-size:11px; font-weight:bold;">Business Type:</label> <select id="cfg-biz-type"> <option value="Retail">General Retail (Classic Emerald)</option> <option value="Computer">Computer &amp; Hardware (Dark Blue)</option> <option value="Clothing">Clothing &amp; Boutique (Rose Pink)</option> <option value="Online">Online Delivery (Purple)</option> </select>
-     </div>
-    </div>
-    <div class="input-grid">
-     <div>
-      <label style="font-size:11px; font-weight:bold;">Expiry (YYYY/MM/DD):</label><input type="text" id="cfg-expiry" placeholder="2026/12/31">
-     </div>
-     <div>
-      <label style="font-size:11px; font-weight:bold;">Invoice Prefix:</label><input type="text" id="cfg-prefix" placeholder="INV-">
-     </div>
-    </div>
-    <div style="margin-bottom:10px;">
-     <label style="font-size:11px; font-weight:bold;">Logo:</label><input type="file" id="cfg-logo-input" accept="image/*" onchange="handleConfigLogoUpload(event)">
-    </div>
-    <div style="margin-bottom:10px;">
-     <label style="font-size:11px; font-weight:bold;">Footer Terms:</label><input type="text" id="cfg-footer-sub" placeholder="Terms &amp; Conditions">
-    </div>
-    <button onclick="saveMasterConfig()" class="btn-green" style="padding:12px; margin-top:10px;">Save Settings to Cloud</button>
-   </div>
-  </div>
-  <script>
+
+    <script>
         const MASTER_PIN = "9421";
         const firebaseConfig = {
             apiKey: "AIzaSyCN5l_bGONO3nhepyYbjucMYWv3CLMTzYKw",
@@ -461,6 +513,38 @@
             }
         }
 
+        function saveAndResetInvoice() {
+            if (items.length === 0) { alert('Add items first!'); return; }
+            const invNo = document.getElementById('inv-no-input').value;
+            const custName = document.getElementById('cust-name-input').value || 'Customer';
+            const custPhone = document.getElementById('cust-phone-input').value || '-';
+            const deliveryAddr = document.getElementById('cust-address-input').value || '';
+            const trackingNo = document.getElementById('courier-track-input').value || '';
+            const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+
+            saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone, address: deliveryAddr, trackingNo, total: subtotal, items });
+
+            let num = parseInt(invNo.replace(/[^0-9]/g, '')) || 1000;
+            localStorage.setItem('lastInvNo_' + defaultConfig.clientKey, num);
+
+            alert('Invoice #' + invNo + ' Saved to Cloud Successfully!');
+            
+            items = [];
+            document.getElementById('cust-name-input').value = '';
+            document.getElementById('cust-phone-input').value = '';
+            document.getElementById('cust-address-input').value = '';
+            document.getElementById('courier-track-input').value = '';
+            document.getElementById('paid-amount-input').value = '';
+            
+            let pfx = defaultConfig.prefix || 'INV-';
+            let nextInvNo = pfx + (num + 1);
+            document.getElementById('lbl-inv').innerText = nextInvNo;
+            document.getElementById('inv-no-input').value = nextInvNo;
+            
+            updateHeader();
+            renderTable();
+        }
+
         function shareWhatsAppInvoice() {
             if (items.length === 0) { alert('Add items first!'); return; }
             let rawPhone = document.getElementById('cust-phone-input').value.replace(/[^0-9]/g, '');
@@ -477,31 +561,12 @@
 
             saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone: rawPhone, address: deliveryAddr, trackingNo, total: subtotal, items });
 
-            let msg = `🛍️ *${defaultConfig.bizName.toUpperCase()}* 🛍️
-_${defaultConfig.bizSub}_
------------------------------------
-🧾 *INVOICE:* #${invNo}
-📅 *Date:* ${formattedDate}
-👤 *Customer:* ${custName}
-`;
-            if(deliveryAddr) msg += `📍 *Delivery Address:* ${deliveryAddr}
-`;
-            if(trackingNo) msg += `🚚 *Courier Tracking:* ${trackingNo}
-`;
-            msg += `-----------------------------------
-
-📦 *ORDER ITEMS:*
-`;
-            items.forEach((item, index) => { msg += `${index + 1}. *${item.desc}* (${item.war})
-   ${item.qty} x ${curr} ${item.price.toLocaleString()} = *${curr} ${item.total.toLocaleString()}*
-`; });
-            msg += `
------------------------------------
-💰 *TOTAL AMOUNT:* *${curr} ${subtotal.toLocaleString()}*
------------------------------------
-
-Thank you for shopping with us!
-_${defaultConfig.footerSub}_`;
+            let msg = `🛍️ *${defaultConfig.bizName.toUpperCase()}* 🛍️\n_${defaultConfig.bizSub}_\n-----------------------------------\n🧾 *INVOICE:* #${invNo}\n📅 *Date:* ${formattedDate}\n👤 *Customer:* ${custName}\n`;
+            if(deliveryAddr) msg += `📍 *Delivery Address:* ${deliveryAddr}\n`;
+            if(trackingNo) msg += `🚚 *Courier Tracking:* ${trackingNo}\n`;
+            msg += `-----------------------------------\n\n📦 *ORDER ITEMS:*\n`;
+            items.forEach((item, index) => { msg += `${index + 1}. *${item.desc}* (${item.war})\n   ${item.qty} x ${curr} ${item.price.toLocaleString()} = *${curr} ${item.total.toLocaleString()}*\n`; });
+            msg += `\n-----------------------------------\n💰 *TOTAL AMOUNT:* *${curr} ${subtotal.toLocaleString()}*\n-----------------------------------\n\nThank you for shopping with us!\n_${defaultConfig.footerSub}_`;
 
             window.open(`https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`, '_blank');
         }
@@ -510,6 +575,16 @@ _${defaultConfig.footerSub}_`;
             if (items.length === 0) { alert('Add items first!'); return; }
             const element = document.getElementById('invoice-render-area');
             const invNo = document.getElementById('inv-no-input').value || 'INV-1001';
+            const custName = document.getElementById('cust-name-input').value || 'Customer';
+            const custPhone = document.getElementById('cust-phone-input').value || '-';
+            const deliveryAddr = document.getElementById('cust-address-input').value || '';
+            const trackingNo = document.getElementById('courier-track-input').value || '';
+            const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+
+            if(docType === 'INVOICE') {
+                saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone, address: deliveryAddr, trackingNo, total: subtotal, items });
+            }
+
             const noPrintElements = document.querySelectorAll('.no-print');
             noPrintElements.forEach(el => el.style.display = 'none');
 
@@ -536,7 +611,92 @@ _${defaultConfig.footerSub}_`;
             });
         }
 
+        /* Dashboard & History Logic */
+        let fetchedInvoices = {};
+
+        function openDashboardModal() {
+            document.getElementById('dashboard-modal').style.display = 'flex';
+            loadInvoicesHistory();
+        }
+
+        function closeDashboardModal() {
+            document.getElementById('dashboard-modal').style.display = 'none';
+        }
+
+        function loadInvoicesHistory() {
+            const tableBody = document.getElementById('dash-invoices-list');
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Fetching data from Cloud...</td></tr>';
+            const curr = defaultConfig.currency || 'Rs.';
+
+            if (db && defaultConfig.clientKey) {
+                db.ref('clients/' + defaultConfig.clientKey + '/invoices').once('value').then((snapshot) => {
+                    const data = snapshot.val();
+                    tableBody.innerHTML = '';
+                    if (!data) {
+                        tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No invoices recorded yet.</td></tr>';
+                        document.getElementById('dash-today-sales').innerText = curr + ' 0.00';
+                        document.getElementById('dash-total-invoices').innerText = '0';
+                        document.getElementById('dash-total-revenue').innerText = curr + ' 0.00';
+                        return;
+                    }
+
+                    fetchedInvoices = data;
+                    let totalRevenue = 0;
+                    let todaySales = 0;
+                    let count = 0;
+
+                    const keys = Object.keys(data).reverse();
+
+                    keys.forEach((key) => {
+                        const inv = data[key];
+                        count++;
+                        const amt = parseFloat(inv.total) || 0;
+                        totalRevenue += amt;
+                        if (inv.date === formattedDate) {
+                            todaySales += amt;
+                        }
+
+                        tableBody.innerHTML += `
+                            <tr>
+                                <td><strong>#${inv.invNo}</strong></td>
+                                <td>${inv.date}</td>
+                                <td>${inv.custName}</td>
+                                <td class="text-right"><strong>${curr} ${amt.toLocaleString('en-US', {minimumFractionDigits:2})}</strong></td>
+                                <td class="text-center">
+                                    <button onclick="loadInvoiceIntoPOS('${key}')" class="btn-theme" style="padding:4px 8px; font-size:11px;">Load / View</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    document.getElementById('dash-today-sales').innerText = curr + ' ' + todaySales.toLocaleString('en-US', {minimumFractionDigits:2});
+                    document.getElementById('dash-total-invoices').innerText = count;
+                    document.getElementById('dash-total-revenue').innerText = curr + ' ' + totalRevenue.toLocaleString('en-US', {minimumFractionDigits:2});
+                }).catch(() => {
+                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center" style="color:red;">Error connecting to Cloud!</td></tr>';
+                });
+            }
+        }
+
+        function loadInvoiceIntoPOS(invKey) {
+            const inv = fetchedInvoices[invKey];
+            if (!inv) return;
+
+            document.getElementById('inv-no-input').value = inv.invNo;
+            document.getElementById('lbl-inv').innerText = inv.invNo;
+            document.getElementById('cust-name-input').value = inv.custName || '';
+            document.getElementById('cust-phone-input').value = inv.custPhone || '';
+            document.getElementById('cust-address-input').value = inv.address || '';
+            document.getElementById('courier-track-input').value = inv.trackingNo || '';
+            
+            items = inv.items || [];
+            updateHeader();
+            renderTable();
+            closeDashboardModal();
+            alert('Loaded Invoice #' + inv.invNo + ' to Screen!');
+        }
+
         loadMasterConfig();
     </script>
- </body>
+</body>
 </html>
