@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master ERP Engine - Cloud POS Billing System</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <style>
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #eef2f5; margin: 0; padding: 15px; color: #111; }
+        .master-bar { max-width: 850px; margin: 0 auto 15px auto; display: flex; justify-content: space-between; align-items: center; background: #111; color: #fff; padding: 10px 18px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .master-brand { font-size: 15px; font-weight: 800; letter-spacing: 0.5px; }
+        .cloud-status { font-size: 11px; font-weight: bold; background: #28a745; color: white; padding: 3px 8px; border-radius: 12px; }
+        .app-card { max-width: 850px; margin: 0 auto; background: #fff; padding: 35px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.06); border-top: 6px solid var(--theme-color, #0056b3); }
+        :root { --theme-color: #0056b3; --theme-bg: #eef4fc; }
+        body.theme-computer { --theme-color: #0056b3; --theme-bg: #eef4fc; }
+        body.theme-clothing { --theme-color: #d63384; --theme-bg: #fdf2f8; }
+        body.theme-retail { --theme-color: #198754; --theme-bg: #eef9f3; }
+        body.theme-online { --theme-color: #6f42c1; --theme-bg: #f3f0fc; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--theme-color); padding-bottom: 15px; margin-bottom: 20px; }
+        .company-title { font-size: 26px; font-weight: 900; color: var(--theme-color); margin: 0; letter-spacing: 0.5px; }
+        .company-sub { font-size: 13px; color: #555; margin-top: 3px; font-weight: 500; }
+        .logo-img { height: 70px; width: auto; object-fit: contain; }
+        .doc-badge { display: inline-block; background: var(--theme-color); color: #fff; padding: 4px 12px; border-radius: 4px; font-weight: 800; font-size: 16px; margin-bottom: 15px; }
+        .input-section { background: var(--theme-bg); border: 1px dashed var(--theme-color); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        input, select { padding: 9px 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 13px; width: 100%; box-sizing: border-box; }
+        input:focus, select:focus { outline: none; border-color: var(--theme-color); }
+        .btn-green { background: #198754; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; font-weight: bold; width: 100%; font-size: 13px; }
+        .btn-theme { background: var(--theme-color); color: white; border: none; padding: 8px 14px; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        .btn-dark { background: #212529; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; font-weight: bold; width: 100%; }
+        .btn-red { background: #dc3545; color: white; border: none; padding: 3px 7px; cursor: pointer; border-radius: 3px; font-weight: bold; }
+        .info-box { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 12px 15px; display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px; font-weight: 600; line-height: 1.6; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th { background-color: var(--theme-bg); color: var(--theme-color); text-align: left; padding: 10px; font-size: 13px; font-weight: 800; border-bottom: 2px solid var(--theme-color); }
+        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .total-container { border-top: 2px solid var(--theme-color); border-bottom: 2px solid var(--theme-color); padding: 12px 0; margin-top: 20px; display: flex; flex-direction: column; align-items: flex-end; }
+        .summary-row { display: flex; justify-content: space-between; width: 280px; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+        .total-box { display: flex; justify-content: space-between; width: 280px; font-size: 16px; font-weight: 800; color: var(--theme-color); border-top: 1px solid #aaa; padding-top: 6px; margin-top: 4px; }
+        .footer-note { text-align: center; font-size: 11px; font-weight: 700; color: #555; margin-top: 35px; }
+        .signatures { display: flex; justify-content: space-between; margin-top: 50px; font-size: 12px; font-weight: 600; }
+        .sig-line { border-top: 1px dashed #777; width: 180px; text-align: center; padding-top: 5px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: #fff; padding: 22px; border-radius: 8px; width: 94%; max-width: 650px; max-height: 88vh; overflow-y: auto; }
+        @media print { .no-print { display: none !important; } }
+    </style>
+ </head>
+ <body>
+  <div class="master-bar no-print">
+   <div class="master-brand">
+    Master ERP System <span class="cloud-status">☁️ Cloud Active</span>
+   </div>
+   <button onclick="openConfigModal()" class="btn-theme" style="padding: 6px 12px; font-size: 12px;">Master Settings</button>
+  </div>
+  <div class="app-card" id="invoice-render-area">
+   <div class="header">
+    <div>
+     <div class="company-title" id="display-biz-name">Your Business Name</div>
+     <div class="company-sub" id="display-biz-sub">Business Tagline / Subtitle</div>
+     <div class="company-sub" id="display-biz-phone">Phone: 07X XXXXXXX</div>
+     <div class="company-sub" id="display-biz-address">Address: Your Business Address</div>
+    </div>
+    <div>
+     <img id="display-logo" class="logo-img" alt="Logo">
+    </div>
+   </div>
+   <div class="doc-badge" id="lbl-doc-title">INVOICE</div>
+   <div class="input-section no-print">
+    <div class="input-grid">
+     <input type="text" id="cust-name-input" placeholder="Customer Name" oninput="updateHeader()"> <input type="text" id="cust-phone-input" placeholder="Customer Phone Number" oninput="updateHeader()">
+    </div>
+    <div class="input-grid" id="courier-fields-container">
+     <input type="text" id="cust-address-input" placeholder="Delivery Address (Optional)" oninput="updateHeader()"> <input type="text" id="courier-track-input" placeholder="Courier Tracking No (Optional)" oninput="updateHeader()">
+    </div>
+    <div class="input-grid">
+     <input type="text" id="inv-no-input" placeholder="Invoice No" oninput="updateHeader()"> <input type="text" id="item-desc" placeholder="Type Item Name...">
+    </div>
+    <div class="input-grid">
+     <input type="number" id="item-qty" value="1" placeholder="Qty"> <input type="text" id="item-war" placeholder="Warranty / Note / Size">
+    </div>
+    <div class="input-grid">
+     <input type="number" id="item-price" placeholder="Price (Rs.)" onkeypress="if(event.key==='Enter') addItem();">
+     <button onclick="addItem()" class="btn-theme">+ Add Item</button>
+    </div>
+    <div style="margin-top: 8px;">
+     <label style="font-size: 11px; font-weight: bold; color: var(--theme-color);">Paid Amount (Rs.):</label> <input type="number" id="paid-amount-input" placeholder="Paid amount..." oninput="calculateTotals()">
+    </div>
+   </div>
+   <div class="info-box">
+    <div>
+     <p style="margin:2px 0;"><strong>Customer:</strong> <span id="lbl-cust">-</span></p>
+     <p style="margin:2px 0;"><strong>Phone:</strong> <span id="lbl-phone">-</span></p>
+     <p id="lbl-address-container" style="margin:2px 0; display:none;"><strong>Address:</strong> <span id="lbl-address">-</span></p>
+    </div>
+    <div style="text-align: right;">
+     <p style="margin:2px 0;"><strong>Doc No:</strong> <span id="lbl-inv">INV-1001</span></p>
+     <p style="margin:2px 0;"><strong>Date:</strong> <span id="lbl-date"></span></p>
+     <p id="lbl-tracking-container" style="margin:2px 0; display:none; color: var(--theme-color);"><strong>Tracking #:</strong> <span id="lbl-tracking">-</span></p>
+    </div>
+   </div>
+   <table>
+    <thead>
+     <tr>
+      <th style="width: 45%;">Description</th>
+      <th class="text-center" style="width: 10%;">Qty</th>
+      <th class="text-center" style="width: 20%;" id="th-note-col">Note / Warranty</th>
+      <th class="text-right" style="width: 25%;">Price</th>
+      <th class="text-center no-print" style="width: 5%;"></th>
+     </tr>
+    </thead>
+    <tbody id="bill-items"></tbody>
+   </table>
+   <div class="total-container">
+    <div class="summary-row">
+     <span>Sub Total:</span><span id="lbl-subtotal">Rs. 0.00</span>
+    </div>
+    <div class="summary-row" style="font-weight:bold;">
+     <span>Net Total:</span><span id="lbl-net-total">Rs. 0.00</span>
+    </div>
+    <div class="summary-row" id="paid-row" style="color:#198754;">
+     <span>Paid Amount:</span><span id="lbl-paid">Rs. 0.00</span>
+    </div>
+    <div class="total-box" id="due-row">
+     <span>Balance Due:</span><span id="lbl-due">Rs. 0.00</span>
+    </div>
+   </div>
+   <div class="footer-note">
+    <p style="margin: 0 0 2px 0;" id="lbl-footer-msg">THANK YOU FOR YOUR BUSINESS</p>
+    <p style="margin: 0;" id="lbl-footer-sub">NO EXCHANGE OR REFUND AFTER 7 DAYS</p>
+   </div>
+   <div class="signatures">
+    <div class="sig-line">Customer Signature</div>
+    <div class="sig-line">Authorized Representative</div>
+   </div>
+   <div class="input-grid no-print" style="margin-top: 25px;">
+    <button onclick="generatePDF('A4', 'INVOICE')" class="btn-green">Download A4 PDF Invoice</button>
+    <button onclick="generatePDF('Slip', 'INVOICE')" class="btn-dark">Download 80mm Slip PDF</button>
+   </div>
+   <div class="input-grid no-print" style="margin-top: 8px;">
+    <button onclick="generatePDF('A4', 'QUOTATION')" id="btn-quotation" class="btn-theme" style="display:none;">Download Quotation PDF</button>
+    <button onclick="shareWhatsAppInvoice()" class="btn-green" style="background:#25D366;">Send WhatsApp Bill</button>
+   </div>
+  </div>
+  <!-- Master Config Modal -->
+  <div id="config-modal" class="modal no-print">
+   <div class="modal-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ddd; padding-bottom:8px; margin-bottom:12px;">
+     <h3 style="margin:0;">Master Settings Panel</h3>
+     <button onclick="closeConfigModal()" class="btn-red">X Close</button>
+    </div>
+    <div class="input-grid">
+     <div>
+      <label style="font-size:11px; font-weight:bold;">Unique Client Key (Letters/Numbers only):</label><input type="text" id="cfg-client-key" placeholder="e.g. store_01">
+     </div>
+     <div>
+      <label style="font-size:11px; font-weight:bold;">Business Name:</label><input type="text" id="cfg-biz-name" placeholder="Business Name">
+     </div>
+    </div>
+    <div class="input-grid">
+     <div>
+      <label style="font-size:11px; font-weight:bold;">Tagline:</label><input type="text" id="cfg-biz-sub" placeholder="Tagline">
+     </div>
+     <div>
+      <label style="font-size:11px; font-weight:bold;">Phone:</label><input type="text" id="cfg-biz-phone" placeholder="Phone Number">
+     </div>
+    </div>
+    <div class="input-grid">
+     <div>
+      <label style="font-size:11px; font-weight:bold;">Address:</label><input type="text" id="cfg-biz-address" placeholder="Address">
+     </div>
+     <div>
+      <label style="font-size:11px; font-weight:bold;">Business Type:</label> <select id="cfg-biz-type"> <option value="Retail">General Retail (Classic Emerald)</option> <option value="Computer">Computer &amp; Hardware (Dark Blue)</option> <option value="Clothing">Clothing &amp; Boutique (Rose Pink)</option> <option value="Online">Online Delivery (Purple)</option> </select>
+     </div>
+    </div>
+    <div class="input-grid">
+     <div>
+      <label style="font-size:11px; font-weight:bold;">Expiry (YYYY/MM/DD):</label><input type="text" id="cfg-expiry" placeholder="2026/12/31">
+     </div>
+     <div>
+      <label style="font-size:11px; font-weight:bold;">Invoice Prefix:</label><input type="text" id="cfg-prefix" placeholder="INV-">
+     </div>
+    </div>
+    <div style="margin-bottom:10px;">
+     <label style="font-size:11px; font-weight:bold;">Logo:</label><input type="file" id="cfg-logo-input" accept="image/*" onchange="handleConfigLogoUpload(event)">
+    </div>
+    <div style="margin-bottom:10px;">
+     <label style="font-size:11px; font-weight:bold;">Footer Terms:</label><input type="text" id="cfg-footer-sub" placeholder="Terms &amp; Conditions">
+    </div>
+    <button onclick="saveMasterConfig()" class="btn-green" style="padding:12px; margin-top:10px;">Save Settings to Cloud</button>
+   </div>
+  </div>
+  <script>
+        const MASTER_PIN = "1234";
+        const firebaseConfig = {
+            apiKey: "AIzaSyCN5l_bGONO3nhepyYbjucMYWv3CLMTzYKw",
+            authDomain: "bill-test-31d3e.firebaseapp.com",
+            databaseURL: "https://bill-test-31d3e-default-rtdb.firebaseio.com",
+            projectId: "bill-test-31d3e",
+            storageBucket: "bill-test-31d3e.appspot.com",
+            messagingSenderId: "635093042559",
+            appId: "1:635093042559:web:6ad22ecdc407f8c7c064a1"
+        };
+
+        let db = null;
+        try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch(e){}
+
+        function resolveClientKey() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const keyInUrl = urlParams.get('client');
+            if (keyInUrl) {
+                let cleanKey = keyInUrl.replace(/[^a-zA-Z0-9_]/g, '_');
+                localStorage.setItem('active_erp_client_key', cleanKey);
+                return cleanKey;
+            }
+            return localStorage.getItem('active_erp_client_key') || 'default_store';
+        }
+
+        let activeClientKey = resolveClientKey();
+
+        let defaultConfig = {
+            clientKey: activeClientKey,
+            bizName: "Your Business Name",
+            bizSub: "Business Tagline / Subtitle",
+            bizPhone: "07X XXXXXXX",
+            bizAddress: "Your Business Address",
+            bizType: "Retail",
+            currency: "Rs.",
+            prefix: "INV-",
+            expiryDate: "2026/12/31",
+            footerSub: "NO EXCHANGE OR REFUND AFTER 7 DAYS",
+            logo: ""
+        };
+
+        let items = [];
+
+        function checkLicense() {
+            const today = new Date();
+            const expiry = new Date(defaultConfig.expiryDate);
+            if (today > expiry) {
+                document.body.innerHTML = '<div style="text-align:center; padding:50px;"><h1 style="color:#dc3545;">License Expired!</h1></div>';
+                return false;
+            }
+            return true;
+        }
+
+        function applyThemeAndPresets(type) {
+            document.body.className = '';
+            const warInput = document.getElementById('item-war');
+            const thNote = document.getElementById('th-note-col');
+            const courierContainer = document.getElementById('courier-fields-container');
+            const quoteBtn = document.getElementById('btn-quotation');
+
+            if (type === 'Clothing') {
+                document.body.classList.add('theme-clothing');
+                warInput.placeholder = "Size / Color (e.g. XL - Red)";
+                thNote.innerText = "Size / Note";
+                courierContainer.style.display = 'grid';
+                quoteBtn.style.display = 'none';
+            } else if (type === 'Retail') {
+                document.body.classList.add('theme-retail');
+                warInput.placeholder = "Note / SKU";
+                thNote.innerText = "Note";
+                courierContainer.style.display = 'none';
+                quoteBtn.style.display = 'none';
+            } else if (type === 'Online') {
+                document.body.classList.add('theme-online');
+                warInput.placeholder = "Note / Item Details";
+                thNote.innerText = "Note";
+                courierContainer.style.display = 'grid';
+                quoteBtn.style.display = 'none';
+            } else {
+                document.body.classList.add('theme-computer');
+                warInput.placeholder = "Warranty / Serial No";
+                thNote.innerText = "Warranty / Serial No";
+                courierContainer.style.display = 'none';
+                quoteBtn.style.display = 'block';
+            }
+        }
+
+        function updateUIWithConfig(config) {
+            defaultConfig = config;
+            if(!checkLicense()) return;
+
+            document.getElementById('display-biz-name').innerText = defaultConfig.bizName;
+            document.getElementById('display-biz-sub').innerText = defaultConfig.bizSub;
+            document.getElementById('display-biz-phone').innerText = "Phone: " + defaultConfig.bizPhone;
+            document.getElementById('display-biz-address').innerText = "Address: " + defaultConfig.bizAddress;
+            document.getElementById('lbl-footer-sub').innerText = defaultConfig.footerSub;
+
+            const logoImg = document.getElementById('display-logo');
+            if (defaultConfig.logo) {
+                logoImg.src = defaultConfig.logo;
+            } else {
+                logoImg.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2'%3E%3Crect x='2' y='3' width='20' height='14' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='8' y1='21' x2='16' y2='21'%3E%3C/line%3E%3C/svg%3E";
+            }
+
+            let pfx = defaultConfig.prefix || 'INV-';
+            let lastInvNo = localStorage.getItem('lastInvNo_' + defaultConfig.clientKey) || 1000;
+            let currentInvNo = pfx + (parseInt(lastInvNo) + 1);
+            document.getElementById('lbl-inv').innerText = currentInvNo;
+            document.getElementById('inv-no-input').value = currentInvNo;
+
+            applyThemeAndPresets(defaultConfig.bizType);
+        }
+
+        function loadMasterConfig() {
+            if (db && activeClientKey) {
+                db.ref('clients/' + activeClientKey + '/config').once('value').then((snapshot) => {
+                    const cloudConfig = snapshot.val();
+                    if (cloudConfig) {
+                        updateUIWithConfig(cloudConfig);
+                        localStorage.setItem('master_erp_config_' + activeClientKey, JSON.stringify(cloudConfig));
+                    } else {
+                        const stored = localStorage.getItem('master_erp_config_' + activeClientKey);
+                        if (stored) { try { updateUIWithConfig(JSON.parse(stored)); } catch(e){ updateUIWithConfig(defaultConfig); } }
+                        else { updateUIWithConfig(defaultConfig); }
+                    }
+                }).catch(() => {
+                    const stored = localStorage.getItem('master_erp_config_' + activeClientKey);
+                    if (stored) { try { updateUIWithConfig(JSON.parse(stored)); } catch(e){ updateUIWithConfig(defaultConfig); } }
+                    else { updateUIWithConfig(defaultConfig); }
+                });
+            } else {
+                updateUIWithConfig(defaultConfig);
+            }
+        }
+
+        function openConfigModal() {
+            let pin = prompt("Enter Master Admin PIN:");
+            if (pin === MASTER_PIN) {
+                document.getElementById('cfg-client-key').value = defaultConfig.clientKey;
+                document.getElementById('cfg-biz-name').value = defaultConfig.bizName;
+                document.getElementById('cfg-biz-sub').value = defaultConfig.bizSub;
+                document.getElementById('cfg-biz-phone').value = defaultConfig.bizPhone;
+                document.getElementById('cfg-biz-address').value = defaultConfig.bizAddress;
+                document.getElementById('cfg-biz-type').value = defaultConfig.bizType;
+                document.getElementById('cfg-footer-sub').value = defaultConfig.footerSub;
+                document.getElementById('cfg-expiry').value = defaultConfig.expiryDate || '2026/12/31';
+                document.getElementById('cfg-prefix').value = defaultConfig.prefix || 'INV-';
+                document.getElementById('config-modal').style.display = 'flex';
+            } else if(pin !== null) {
+                alert("Incorrect PIN!");
+            }
+        }
+
+        function closeConfigModal() { document.getElementById('config-modal').style.display = 'none'; }
+
+        function handleConfigLogoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) { defaultConfig.logo = e.target.result; }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function saveMasterConfig() {
+            let rawKey = document.getElementById('cfg-client-key').value.trim() || defaultConfig.clientKey;
+            let cleanKey = rawKey.replace(/[^a-zA-Z0-9_]/g, '_');
+
+            defaultConfig.clientKey = cleanKey;
+            defaultConfig.bizName = document.getElementById('cfg-biz-name').value || defaultConfig.bizName;
+            defaultConfig.bizSub = document.getElementById('cfg-biz-sub').value || defaultConfig.bizSub;
+            defaultConfig.bizPhone = document.getElementById('cfg-biz-phone').value || defaultConfig.bizPhone;
+            defaultConfig.bizAddress = document.getElementById('cfg-biz-address').value || defaultConfig.bizAddress;
+            defaultConfig.bizType = document.getElementById('cfg-biz-type').value;
+            defaultConfig.footerSub = document.getElementById('cfg-footer-sub').value || defaultConfig.footerSub;
+            defaultConfig.expiryDate = document.getElementById('cfg-expiry').value || '2026/12/31';
+            defaultConfig.prefix = document.getElementById('cfg-prefix').value || 'INV-';
+
+            activeClientKey = cleanKey;
+            localStorage.setItem('active_erp_client_key', cleanKey);
+            localStorage.setItem('master_erp_config_' + cleanKey, JSON.stringify(defaultConfig));
+            
+            if (db) { 
+                db.ref('clients/' + cleanKey + '/config').set(defaultConfig).then(() => {
+                    alert('Settings Saved and Synced to Firebase Cloud!');
+                }); 
+            }
+            
+            updateUIWithConfig(defaultConfig);
+            closeConfigModal();
+        }
+
+        const today = new Date();
+        const formattedDate = today.getFullYear() + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + String(today.getDate()).padStart(2, '0');
+        document.getElementById('lbl-date').innerText = formattedDate;
+
+        function addItem() {
+            const desc = document.getElementById('item-desc').value.trim();
+            const qty = parseFloat(document.getElementById('item-qty').value) || 1;
+            const war = document.getElementById('item-war').value || '-';
+            const price = parseFloat(document.getElementById('item-price').value) || 0;
+
+            if (!desc || price <= 0) { alert('Enter Item and Price!'); return; }
+            items.push({ desc, qty, war, price, total: qty * price });
+            renderTable();
+            document.getElementById('item-desc').value = '';
+            document.getElementById('item-qty').value = '1';
+            document.getElementById('item-war').value = '';
+            document.getElementById('item-price').value = '';
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('bill-items');
+            tbody.innerHTML = '';
+            const curr = defaultConfig.currency || 'Rs.';
+            items.forEach((item, index) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.desc}</td>
+                        <td class="text-center">${item.qty}</td>
+                        <td class="text-center">${item.war}</td>
+                        <td class="text-right">${curr} ${item.price.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td class="text-center no-print"><button onclick="items.splice(${index},1); renderTable();" class="btn-red">X</button></td>
+                    </tr>
+                `;
+            });
+            calculateTotals();
+        }
+
+        function calculateTotals() {
+            const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+            let paidInput = document.getElementById('paid-amount-input').value;
+            let paidAmount = parseFloat(paidInput);
+            if (isNaN(paidAmount)) paidAmount = subtotal;
+            const dueAmount = Math.max(0, subtotal - paidAmount);
+            const curr = defaultConfig.currency || 'Rs.';
+
+            document.getElementById('lbl-subtotal').innerText = curr + ' ' + subtotal.toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('lbl-net-total').innerText = curr + ' ' + subtotal.toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('lbl-paid').innerText = curr + ' ' + paidAmount.toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('lbl-due').innerText = curr + ' ' + dueAmount.toLocaleString('en-US', {minimumFractionDigits: 2});
+        }
+
+        function updateHeader() {
+            document.getElementById('lbl-cust').innerText = document.getElementById('cust-name-input').value || '-';
+            document.getElementById('lbl-phone').innerText = document.getElementById('cust-phone-input').value || '-';
+            const addrInput = document.getElementById('cust-address-input');
+            if (addrInput && addrInput.value) {
+                document.getElementById('lbl-address').innerText = addrInput.value;
+                document.getElementById('lbl-address-container').style.display = 'block';
+            } else { document.getElementById('lbl-address-container').style.display = 'none'; }
+
+            const trackInput = document.getElementById('courier-track-input');
+            if (trackInput && trackInput.value) {
+                document.getElementById('lbl-tracking').innerText = trackInput.value;
+                document.getElementById('lbl-tracking-container').style.display = 'block';
+            } else { document.getElementById('lbl-tracking-container').style.display = 'none'; }
+            calculateTotals();
+        }
+
+        function saveInvoiceToCloud(invData) {
+            if (db && defaultConfig.clientKey) {
+                const cleanInvNo = invData.invNo.replace(/[^a-zA-Z0-9_-]/g, '_');
+                db.ref('clients/' + defaultConfig.clientKey + '/invoices/' + cleanInvNo).set(invData);
+            }
+        }
+
+        function shareWhatsAppInvoice() {
+            if (items.length === 0) { alert('Add items first!'); return; }
+            let rawPhone = document.getElementById('cust-phone-input').value.replace(/[^0-9]/g, '');
+            if (!rawPhone) { alert('Enter Phone Number!'); return; }
+            if (rawPhone.startsWith('0')) rawPhone = '94' + rawPhone.substring(1);
+            else if (!rawPhone.startsWith('94')) rawPhone = '94' + rawPhone;
+
+            const custName = document.getElementById('cust-name-input').value || 'Customer';
+            const invNo = document.getElementById('inv-no-input').value;
+            const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+            const curr = defaultConfig.currency || 'Rs.';
+            const deliveryAddr = document.getElementById('cust-address-input').value || '';
+            const trackingNo = document.getElementById('courier-track-input').value || '';
+
+            saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone: rawPhone, address: deliveryAddr, trackingNo, total: subtotal, items });
+
+            let msg = `🛍️ *${defaultConfig.bizName.toUpperCase()}* 🛍️
+_${defaultConfig.bizSub}_
+-----------------------------------
+🧾 *INVOICE:* #${invNo}
+📅 *Date:* ${formattedDate}
+👤 *Customer:* ${custName}
+`;
+            if(deliveryAddr) msg += `📍 *Delivery Address:* ${deliveryAddr}
+`;
+            if(trackingNo) msg += `🚚 *Courier Tracking:* ${trackingNo}
+`;
+            msg += `-----------------------------------
+
+📦 *ORDER ITEMS:*
+`;
+            items.forEach((item, index) => { msg += `${index + 1}. *${item.desc}* (${item.war})
+   ${item.qty} x ${curr} ${item.price.toLocaleString()} = *${curr} ${item.total.toLocaleString()}*
+`; });
+            msg += `
+-----------------------------------
+💰 *TOTAL AMOUNT:* *${curr} ${subtotal.toLocaleString()}*
+-----------------------------------
+
+Thank you for shopping with us!
+_${defaultConfig.footerSub}_`;
+
+            window.open(`https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        function generatePDF(paperFormat, docType = 'INVOICE') {
+            if (items.length === 0) { alert('Add items first!'); return; }
+            const element = document.getElementById('invoice-render-area');
+            const invNo = document.getElementById('inv-no-input').value || 'INV-1001';
+            const noPrintElements = document.querySelectorAll('.no-print');
+            noPrintElements.forEach(el => el.style.display = 'none');
+
+            if (docType === 'QUOTATION') {
+                document.getElementById('lbl-doc-title').innerText = 'QUOTATION / PRICE ESTIMATE';
+                document.getElementById('paid-row').style.display = 'none';
+                document.getElementById('due-row').style.display = 'none';
+            } else {
+                document.getElementById('lbl-doc-title').innerText = 'INVOICE';
+                document.getElementById('paid-row').style.display = 'flex';
+                document.getElementById('due-row').style.display = 'flex';
+            }
+
+            const opt = {
+                margin: 0.3,
+                filename: `${docType}_${invNo}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: paperFormat === 'Slip' ? [3.15, 8] : 'letter', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                noPrintElements.forEach(el => el.style.display = '');
+            });
+        }
+
+        loadMasterConfig();
+    </script>
+ </body>
+</html>
