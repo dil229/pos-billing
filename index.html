@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Master ERP Engine - Cloud POS & Dashboard</title>
+    <title>Master ERP Engine - Cloud POS & Stock</title>
     
-    <!-- PWA & Mobile App Settings -->
+    <!-- PWA Settings -->
     <meta name="theme-color" content="#111111">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="POS Billing">
-    <link rel="apple-touch-icon" href="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230056b3'/%3E%3Cpath d='M160 120h192v48H160zM128 200h256v200H128z' fill='%23ffffff'/%3E%3C/svg%3E">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -24,8 +23,6 @@
         .master-brand { font-size: 14px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
         .cloud-status { font-size: 10px; font-weight: bold; background: #28a745; color: white; padding: 3px 7px; border-radius: 12px; }
         .nav-actions { display: flex; gap: 6px; }
-        
-        .install-banner { max-width: 850px; margin: 0 auto 12px auto; background: #212529; color: white; padding: 10px 15px; border-radius: 8px; display: none; justify-content: space-between; align-items: center; border-left: 4px solid #28a745; }
         
         .app-card { max-width: 850px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.06); border-top: 6px solid var(--theme-color, #0056b3); }
         :root { --theme-color: #0056b3; --theme-bg: #eef4fc; }
@@ -45,7 +42,7 @@
         input, select { padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; width: 100%; box-sizing: border-box; }
         input:focus, select:focus { outline: none; border-color: var(--theme-color); }
         
-        .btn-green { background: #198754; color: white; border: none; padding: 10px; cursor: border; border-radius: 6px; font-weight: bold; width: 100%; font-size: 13px; }
+        .btn-green { background: #198754; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 6px; font-weight: bold; width: 100%; font-size: 13px; }
         .btn-theme { background: var(--theme-color); color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 6px; font-weight: bold; }
         .btn-dark { background: #212529; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 6px; font-weight: bold; width: 100%; font-size: 13px; }
         .btn-red { background: #dc3545; color: white; border: none; padding: 4px 8px; cursor: pointer; border-radius: 4px; font-weight: bold; }
@@ -73,6 +70,10 @@
         .stat-val { font-size: 18px; font-weight: 900; color: var(--theme-color); margin-top: 3px; }
         .stat-lbl { font-size: 11px; font-weight: 700; color: #666; text-transform: uppercase; }
         
+        .stock-badge { padding: 3px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .stock-ok { background: #d1e7dd; color: #0f5132; }
+        .stock-low { background: #f8d7da; color: #842029; }
+        
         @media (max-width: 600px) {
             body { padding: 6px; }
             .app-card { padding: 15px; }
@@ -89,15 +90,10 @@
             <span class="cloud-status">☁️ Cloud</span>
         </div>
         <div class="nav-actions">
+            <button onclick="openStockModal()" class="btn-theme" style="background:#fd7e14; font-size: 11px;">📦 Stock</button>
             <button onclick="openDashboardModal()" class="btn-theme" style="background:#0d6efd; font-size: 11px;">📊 Sales</button>
             <button onclick="openConfigModal()" class="btn-theme" style="font-size: 11px;">⚙️ Config</button>
         </div>
-    </div>
-
-    <!-- PWA Install Banner -->
-    <div id="pwa-install-banner" class="install-banner no-print">
-        <div style="font-size: 12px; font-weight: bold;">📱 Install App on your Phone</div>
-        <button id="pwa-btn" onclick="triggerPWAInstall()" class="btn-green" style="width: auto; padding: 6px 12px; font-size: 11px;">Install App</button>
     </div>
 
     <div class="app-card" id="invoice-render-area">
@@ -124,7 +120,10 @@
             </div>
             <div class="input-grid">
                 <input type="text" id="inv-no-input" placeholder="Invoice No" oninput="updateHeader()">
-                <input type="text" id="item-desc" placeholder="Type Item Name...">
+                <div>
+                    <input type="text" id="item-desc" list="stock-datalist" placeholder="Select or Type Item..." onchange="onStockItemSelected()">
+                    <datalist id="stock-datalist"></datalist>
+                </div>
             </div>
             <div class="input-grid">
                 <input type="number" id="item-qty" value="1" placeholder="Qty">
@@ -196,6 +195,46 @@
         </div>
     </div>
 
+    <!-- Stock Manager Modal -->
+    <div id="stock-modal" class="modal no-print">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ddd; padding-bottom:8px; margin-bottom:15px;">
+                <h3 style="margin:0;">📦 Stock & Inventory Manager</h3>
+                <button onclick="closeStockModal()" class="btn-red">X Close</button>
+            </div>
+
+            <div style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #ddd;">
+                <h4 style="margin:0 0 8px 0; font-size:13px;">+ Add New Product to Stock</h4>
+                <div class="input-grid">
+                    <input type="text" id="new-prod-name" placeholder="Item Name (e.g. Core i5 10th Gen)">
+                    <input type="number" id="new-prod-price" placeholder="Selling Price (Rs.)">
+                </div>
+                <div class="input-grid">
+                    <input type="number" id="new-prod-qty" placeholder="Available Qty (e.g. 10)">
+                    <input type="text" id="new-prod-war" placeholder="Default Note/Warranty (Optional)">
+                </div>
+                <button onclick="saveProductToStock()" class="btn-green" style="padding:8px;">Add Product to Cloud Stock</button>
+            </div>
+
+            <h4 style="margin: 10px 0 8px 0;">Current Inventory</h4>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th class="text-right">Price</th>
+                            <th class="text-center">In Stock</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-table-body">
+                        <tr><td colspan="4" class="text-center">Loading stock...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Sales History / Dashboard Modal -->
     <div id="dashboard-modal" class="modal no-print">
         <div class="modal-content">
@@ -247,7 +286,7 @@
                 <button onclick="closeConfigModal()" class="btn-red">X Close</button>
             </div>
             <div class="input-grid">
-                <div><label style="font-size:11px; font-weight:bold;">Unique Client Key (Letters/Numbers only):</label><input type="text" id="cfg-client-key" placeholder="e.g. store_01"></div>
+                <div><label style="font-size:11px; font-weight:bold;">Unique Client Key:</label><input type="text" id="cfg-client-key" placeholder="e.g. store_01"></div>
                 <div><label style="font-size:11px; font-weight:bold;">Business Name:</label><input type="text" id="cfg-biz-name" placeholder="Business Name"></div>
             </div>
             <div class="input-grid">
@@ -303,55 +342,7 @@
         }
 
         let activeClientKey = resolveClientKey();
-
-        // Dynamically inject Web App Manifest for PWA installation
-        (function setupManifest() {
-            const manifestObj = {
-                "name": "POS Cloud ERP",
-                "short_name": "POS Billing",
-                "start_url": window.location.href,
-                "display": "standalone",
-                "background_color": "#111111",
-                "theme_color": "#111111",
-                "icons": [
-                    {
-                        "src": "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230056b3'/%3E%3Cpath d='M160 120h192v48H160zM128 200h256v200H128z' fill='%23ffffff'/%3E%3C/svg%3E",
-                        "sizes": "512x512",
-                        "type": "image/svg+xml"
-                    }
-                ]
-            };
-            const stringManifest = JSON.stringify(manifestObj);
-            const blob = new Blob([stringManifest], {type: 'application/json'});
-            const manifestURL = URL.createObjectURL(blob);
-            const linkTag = document.createElement('link');
-            linkTag.rel = 'manifest';
-            linkTag.href = manifestURL;
-            document.head.appendChild(linkTag);
-        })();
-
-        // PWA Install Prompt Listener
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            const banner = document.getElementById('pwa-install-banner');
-            if (banner) banner.style.display = 'flex';
-        });
-
-        function triggerPWAInstall() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        document.getElementById('pwa-install-banner').style.display = 'none';
-                    }
-                    deferredPrompt = null;
-                });
-            } else {
-                alert('To install: Open Chrome menu (⋮) and tap "Add to Home screen" or "Install App".');
-            }
-        }
+        let cloudStock = {};
 
         let defaultConfig = {
             clientKey: activeClientKey,
@@ -437,6 +428,7 @@
             document.getElementById('inv-no-input').value = currentInvNo;
 
             applyThemeAndPresets(defaultConfig.bizType);
+            loadCloudStock();
         }
 
         function loadMasterConfig() {
@@ -518,6 +510,99 @@
             closeConfigModal();
         }
 
+        /* Stock Management Logic */
+        function loadCloudStock() {
+            if (db && defaultConfig.clientKey) {
+                db.ref('clients/' + defaultConfig.clientKey + '/stock').on('value', (snapshot) => {
+                    cloudStock = snapshot.val() || {};
+                    populateStockDatalist();
+                    renderStockTable();
+                });
+            }
+        }
+
+        function populateStockDatalist() {
+            const dl = document.getElementById('stock-datalist');
+            dl.innerHTML = '';
+            Object.keys(cloudStock).forEach(key => {
+                const p = cloudStock[key];
+                dl.innerHTML += `<option value="${p.name}">Rs. ${p.price} | Stock: ${p.qty}</option>`;
+            });
+        }
+
+        function onStockItemSelected() {
+            const val = document.getElementById('item-desc').value.trim();
+            const foundKey = Object.keys(cloudStock).find(k => cloudStock[k].name.toLowerCase() === val.toLowerCase());
+            if (foundKey) {
+                const prod = cloudStock[foundKey];
+                document.getElementById('item-price').value = prod.price;
+                if(prod.war) document.getElementById('item-war').value = prod.war;
+            }
+        }
+
+        function openStockModal() {
+            document.getElementById('stock-modal').style.display = 'flex';
+            renderStockTable();
+        }
+
+        function closeStockModal() { document.getElementById('stock-modal').style.display = 'none'; }
+
+        function saveProductToStock() {
+            const name = document.getElementById('new-prod-name').value.trim();
+            const price = parseFloat(document.getElementById('new-prod-price').value) || 0;
+            const qty = parseInt(document.getElementById('new-prod-qty').value) || 0;
+            const war = document.getElementById('new-prod-war').value.trim() || '';
+
+            if(!name || price <= 0) { alert('Enter valid Product Name and Price!'); return; }
+            const cleanKey = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+            if(db && defaultConfig.clientKey) {
+                db.ref('clients/' + defaultConfig.clientKey + '/stock/' + cleanKey).set({ name, price, qty, war }).then(() => {
+                    alert('Product saved to Stock!');
+                    document.getElementById('new-prod-name').value = '';
+                    document.getElementById('new-prod-price').value = '';
+                    document.getElementById('new-prod-qty').value = '';
+                    document.getElementById('new-prod-war').value = '';
+                });
+            }
+        }
+
+        function renderStockTable() {
+            const tbody = document.getElementById('stock-table-body');
+            tbody.innerHTML = '';
+            const curr = defaultConfig.currency || 'Rs.';
+            const keys = Object.keys(cloudStock);
+            if(keys.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">No products in stock yet.</td></tr>';
+                return;
+            }
+
+            keys.forEach(k => {
+                const p = cloudStock[k];
+                const badgeClass = p.qty <= 2 ? 'stock-low' : 'stock-ok';
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${p.name}</strong><br><small style="color:#666;">${p.war || ''}</small></td>
+                        <td class="text-right">${curr} ${p.price.toLocaleString()}</td>
+                        <td class="text-center"><span class="stock-badge ${badgeClass}">${p.qty}</span></td>
+                        <td class="text-center">
+                            <button onclick="updateStockQtyPrompt('${k}', ${p.qty})" class="btn-theme" style="padding:3px 6px; font-size:11px;">+ Qty</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function updateStockQtyPrompt(key, currentQty) {
+            let addVal = prompt(`Add Qty for ${cloudStock[key].name} (Current: ${currentQty}):`, "5");
+            if(addVal !== null && !isNaN(parseInt(addVal))) {
+                let newQty = currentQty + parseInt(addVal);
+                if(db && defaultConfig.clientKey) {
+                    db.ref('clients/' + defaultConfig.clientKey + '/stock/' + key + '/qty').set(newQty);
+                }
+            }
+        }
+
         const today = new Date();
         const formattedDate = today.getFullYear() + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + String(today.getDate()).padStart(2, '0');
         document.getElementById('lbl-date').innerText = formattedDate;
@@ -529,6 +614,15 @@
             const price = parseFloat(document.getElementById('item-price').value) || 0;
 
             if (!desc || price <= 0) { alert('Enter Item and Price!'); return; }
+
+            // Check Stock availability
+            const foundKey = Object.keys(cloudStock).find(k => cloudStock[k].name.toLowerCase() === desc.toLowerCase());
+            if(foundKey) {
+                if(cloudStock[foundKey].qty < qty) {
+                    alert(`⚠️ Low Stock Alert! Available Qty in Stock is only ${cloudStock[foundKey].qty}`);
+                }
+            }
+
             items.push({ desc, qty, war, price, total: qty * price });
             renderTable();
             document.getElementById('item-desc').value = '';
@@ -586,10 +680,23 @@
             calculateTotals();
         }
 
+        function deductStockForInvoice(soldItems) {
+            if(db && defaultConfig.clientKey && Object.keys(cloudStock).length > 0) {
+                soldItems.forEach(item => {
+                    const foundKey = Object.keys(cloudStock).find(k => cloudStock[k].name.toLowerCase() === item.desc.toLowerCase());
+                    if(foundKey) {
+                        let newQty = Math.max(0, cloudStock[foundKey].qty - item.qty);
+                        db.ref('clients/' + defaultConfig.clientKey + '/stock/' + foundKey + '/qty').set(newQty);
+                    }
+                });
+            }
+        }
+
         function saveInvoiceToCloud(invData) {
             if (db && defaultConfig.clientKey) {
                 const cleanInvNo = invData.invNo.replace(/[^a-zA-Z0-9_-]/g, '_');
                 db.ref('clients/' + defaultConfig.clientKey + '/invoices/' + cleanInvNo).set(invData);
+                deductStockForInvoice(invData.items);
             }
         }
 
@@ -607,7 +714,7 @@
             let num = parseInt(invNo.replace(/[^0-9]/g, '')) || 1000;
             localStorage.setItem('lastInvNo_' + defaultConfig.clientKey, num);
 
-            alert('Invoice #' + invNo + ' Saved to Cloud Successfully!');
+            alert('Invoice #' + invNo + ' Saved and Stock Deducted Successfully!');
             
             items = [];
             document.getElementById('cust-name-input').value = '';
