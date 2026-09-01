@@ -114,7 +114,8 @@
                 <input type="text" id="cust-name-input" placeholder="Customer Name" oninput="updateHeader()">
                 <input type="text" id="cust-phone-input" placeholder="Customer Phone Number" oninput="updateHeader()">
             </div>
-            <div class="input-grid" id="courier-fields-container">
+            <!-- Delivery Options Fields -->
+            <div class="input-grid" id="courier-fields-container" style="display: grid;">
                 <input type="text" id="cust-address-input" placeholder="Delivery Address (Optional)" oninput="updateHeader()">
                 <input type="text" id="courier-track-input" placeholder="Courier Tracking No (Optional)" oninput="updateHeader()">
             </div>
@@ -127,7 +128,7 @@
             </div>
             <div class="input-grid">
                 <input type="number" id="item-qty" value="1" placeholder="Qty">
-                <input type="text" id="item-war" placeholder="Warranty / Note / Size">
+                <input type="text" id="item-war" placeholder="Warranty / Note / Serial No">
             </div>
             <div class="input-grid">
                 <input type="number" id="item-price" placeholder="Price (Rs.)" onkeypress="if(event.key==='Enter') addItem();">
@@ -187,7 +188,7 @@
             <button onclick="generatePDF('Slip', 'INVOICE')" class="btn-dark">Download 80mm Slip PDF</button>
         </div>
         <div class="input-grid no-print" style="margin-top: 8px;">
-            <button onclick="generatePDF('A4', 'QUOTATION')" id="btn-quotation" class="btn-theme" style="display:none;">Download Quotation PDF</button>
+            <button onclick="generatePDF('A4', 'QUOTATION')" id="btn-quotation" class="btn-theme">Download Quotation PDF</button>
             <button onclick="shareWhatsAppInvoice()" class="btn-green" style="background:#25D366;">Send WhatsApp Bill</button>
         </div>
         <div class="no-print" style="margin-top: 8px;">
@@ -298,8 +299,8 @@
                 <div>
                     <label style="font-size:11px; font-weight:bold;">Business Type:</label>
                     <select id="cfg-biz-type">
-                        <option value="Retail">General Retail (Classic Emerald)</option>
                         <option value="Computer">Computer & Hardware (Dark Blue)</option>
+                        <option value="Retail">General Retail (Classic Emerald)</option>
                         <option value="Clothing">Clothing & Boutique (Rose Pink)</option>
                         <option value="Online">Online Delivery (Purple)</option>
                     </select>
@@ -350,7 +351,7 @@
             bizSub: "Business Tagline / Subtitle",
             bizPhone: "07X XXXXXXX",
             bizAddress: "Your Business Address",
-            bizType: "Retail",
+            bizType: "Computer",
             currency: "Rs.",
             prefix: "INV-",
             expiryDate: "2026/12/31",
@@ -372,35 +373,14 @@
 
         function applyThemeAndPresets(type) {
             document.body.className = '';
-            const warInput = document.getElementById('item-war');
-            const thNote = document.getElementById('th-note-col');
-            const courierContainer = document.getElementById('courier-fields-container');
-            const quoteBtn = document.getElementById('btn-quotation');
-
             if (type === 'Clothing') {
                 document.body.classList.add('theme-clothing');
-                warInput.placeholder = "Size / Color (e.g. XL - Red)";
-                thNote.innerText = "Size / Note";
-                courierContainer.style.display = 'grid';
-                quoteBtn.style.display = 'none';
             } else if (type === 'Retail') {
                 document.body.classList.add('theme-retail');
-                warInput.placeholder = "Note / SKU";
-                thNote.innerText = "Note";
-                courierContainer.style.display = 'none';
-                quoteBtn.style.display = 'none';
             } else if (type === 'Online') {
                 document.body.classList.add('theme-online');
-                warInput.placeholder = "Note / Item Details";
-                thNote.innerText = "Note";
-                courierContainer.style.display = 'grid';
-                quoteBtn.style.display = 'none';
             } else {
                 document.body.classList.add('theme-computer');
-                warInput.placeholder = "Warranty / Serial No";
-                thNote.innerText = "Warranty / Serial No";
-                courierContainer.style.display = 'none';
-                quoteBtn.style.display = 'block';
             }
         }
 
@@ -615,7 +595,6 @@
 
             if (!desc || price <= 0) { alert('Enter Item and Price!'); return; }
 
-            // Check Stock availability
             const foundKey = Object.keys(cloudStock).find(k => cloudStock[k].name.toLowerCase() === desc.toLowerCase());
             if(foundKey) {
                 if(cloudStock[foundKey].qty < qty) {
