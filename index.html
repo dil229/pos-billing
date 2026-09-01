@@ -1,889 +1,459 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Master ERP Engine - Cloud POS & Stock</title>
-    
-    <!-- PWA Settings -->
-    <meta name="theme-color" content="#111111">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="POS Billing">
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
-    <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #eef2f5; margin: 0; padding: 12px; color: #111; }
-        
-        .master-bar { max-width: 850px; margin: 0 auto 12px auto; display: flex; justify-content: space-between; align-items: center; background: #111; color: #fff; padding: 10px 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .master-brand { font-size: 14px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
-        .cloud-status { font-size: 10px; font-weight: bold; background: #28a745; color: white; padding: 3px 7px; border-radius: 12px; }
-        .nav-actions { display: flex; gap: 6px; }
-        
-        .app-card { max-width: 850px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.06); border-top: 6px solid var(--theme-color, #0056b3); }
-        :root { --theme-color: #0056b3; --theme-bg: #eef4fc; }
-        body.theme-computer { --theme-color: #0056b3; --theme-bg: #eef4fc; }
-        body.theme-clothing { --theme-color: #d63384; --theme-bg: #fdf2f8; }
-        body.theme-retail { --theme-color: #198754; --theme-bg: #eef9f3; }
-        body.theme-online { --theme-color: #6f42c1; --theme-bg: #f3f0fc; }
-        
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--theme-color); padding-bottom: 12px; margin-bottom: 16px; }
-        .company-title { font-size: 24px; font-weight: 900; color: var(--theme-color); margin: 0; }
-        .company-sub { font-size: 12px; color: #555; margin-top: 2px; font-weight: 500; }
-        .logo-img { height: 65px; width: auto; object-fit: contain; }
-        .doc-badge { display: inline-block; background: var(--theme-color); color: #fff; padding: 4px 12px; border-radius: 4px; font-weight: 800; font-size: 15px; margin-bottom: 12px; }
-        
-        .input-section { background: var(--theme-bg); border: 1px dashed var(--theme-color); padding: 14px; border-radius: 8px; margin-bottom: 18px; }
-        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-        input, select { padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; width: 100%; box-sizing: border-box; }
-        input:focus, select:focus { outline: none; border-color: var(--theme-color); }
-        
-        .btn-green { background: #198754; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 6px; font-weight: bold; width: 100%; font-size: 13px; }
-        .btn-theme { background: var(--theme-color); color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 6px; font-weight: bold; }
-        .btn-dark { background: #212529; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 6px; font-weight: bold; width: 100%; font-size: 13px; }
-        .btn-red { background: #dc3545; color: white; border: none; padding: 4px 8px; cursor: pointer; border-radius: 4px; font-weight: bold; }
-        
-        .info-box { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 12px 14px; display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 13px; font-weight: 600; line-height: 1.5; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-        th { background-color: var(--theme-bg); color: var(--theme-color); text-align: left; padding: 9px; font-size: 12px; font-weight: 800; border-bottom: 2px solid var(--theme-color); }
-        td { padding: 9px; border-bottom: 1px solid #eee; font-size: 13px; }
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        
-        .total-container { border-top: 2px solid var(--theme-color); border-bottom: 2px solid var(--theme-color); padding: 10px 0; margin-top: 15px; display: flex; flex-direction: column; align-items: flex-end; }
-        .summary-row { display: flex; justify-content: space-between; width: 260px; font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-        .total-box { display: flex; justify-content: space-between; width: 260px; font-size: 16px; font-weight: 800; color: var(--theme-color); border-top: 1px solid #aaa; padding-top: 5px; margin-top: 3px; }
-        
-        .footer-note { text-align: center; font-size: 11px; font-weight: 700; color: #555; margin-top: 25px; }
-        .signatures { display: flex; justify-content: space-between; margin-top: 40px; font-size: 12px; font-weight: 600; }
-        .sig-line { border-top: 1px dashed #777; width: 160px; text-align: center; padding-top: 4px; }
-        
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 94%; max-width: 750px; max-height: 90vh; overflow-y: auto; }
-        
-        .dash-stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-        .stat-card { background: var(--theme-bg); padding: 12px; border-radius: 8px; border-left: 4px solid var(--theme-color); }
-        .stat-val { font-size: 18px; font-weight: 900; color: var(--theme-color); margin-top: 3px; }
-        .stat-lbl { font-size: 11px; font-weight: 700; color: #666; text-transform: uppercase; }
-        
-        .stock-badge { padding: 3px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-        .stock-ok { background: #d1e7dd; color: #0f5132; }
-        .stock-low { background: #f8d7da; color: #842029; }
-        
-        @media (max-width: 600px) {
-            body { padding: 6px; }
-            .app-card { padding: 15px; }
-            .dash-stats-grid { grid-template-columns: 1fr; }
-        }
-        @media print { .no-print { display: none !important; } }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Cloud POS & Billing</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
-<body>
+<body class="bg-slate-100 font-sans text-slate-800 pb-10">
 
-    <div class="master-bar no-print">
-        <div class="master-brand">
-            <span>Master ERP</span>
-            <span class="cloud-status">☁️ Cloud</span>
+  <!-- Header -->
+  <header class="bg-indigo-900 text-white p-4 shadow-lg sticky top-0 z-50">
+    <div class="max-w-xl mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <img id="storeLogo" class="w-10 h-10 rounded-full bg-white p-1 hidden object-cover" alt="Logo">
+        <div>
+          <h1 id="storeName" class="font-bold text-lg leading-tight">Smart POS</h1>
+          <p id="storeTagline" class="text-xs text-indigo-200">Cloud Billing System</p>
         </div>
-        <div class="nav-actions">
-            <button onclick="openStockModal()" class="btn-theme" style="background:#fd7e14; font-size: 11px;">📦 Stock</button>
-            <button onclick="openDashboardModal()" class="btn-theme" style="background:#0d6efd; font-size: 11px;">📊 Sales</button>
-            <button onclick="openConfigModal()" class="btn-theme" style="font-size: 11px;">⚙️ Config</button>
-        </div>
+      </div>
+      <button onclick="openConfig()" class="bg-indigo-700 hover:bg-indigo-600 px-3 py-1.5 rounded-lg text-xs font-semibold">⚙️ Config</button>
+    </div>
+  </header>
+
+  <main class="max-w-xl mx-auto p-4 space-y-4">
+
+    <!-- Active Navigation -->
+    <div class="flex gap-2">
+      <button onclick="switchTab('billing')" id="tabBilling" class="flex-1 py-2 font-bold text-sm bg-indigo-600 text-white rounded-lg shadow">🧾 New Bill</button>
+      <button onclick="switchTab('stock')" id="tabStock" class="flex-1 py-2 font-bold text-sm bg-slate-200 text-slate-700 rounded-lg">📦 Stock</button>
+      <button onclick="switchTab('history')" id="tabHistory" class="flex-1 py-2 font-bold text-sm bg-slate-200 text-slate-700 rounded-lg">📊 Sales</button>
     </div>
 
-    <div class="app-card" id="invoice-render-area">
-        <div class="header">
+    <!-- BILLING VIEW -->
+    <div id="viewBilling" class="space-y-4">
+      
+      <!-- Item Add Form -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+        <h3 class="font-bold text-sm text-slate-700">Add Item to Cart</h3>
+        
+        <div>
+          <label class="text-xs font-semibold text-slate-500">Select Item</label>
+          <select id="itemSelect" onchange="onItemSelect()" class="w-full border p-2 rounded-lg text-sm bg-slate-50">
+            <option value="">-- Select Product --</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-semibold text-slate-500">Price (LKR)</label>
+            <input type="number" id="itemPrice" class="w-full border p-2 rounded-lg text-sm" placeholder="0.00">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-500">Quantity</label>
+            <input type="number" id="itemQty" value="1" min="1" class="w-full border p-2 rounded-lg text-sm">
+          </div>
+        </div>
+
+        <button onclick="addToCart()" class="w-full bg-slate-800 text-white py-2 rounded-lg text-sm font-bold hover:bg-slate-900">+ Add to Invoice</button>
+      </div>
+
+      <!-- Cart Table -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <h3 class="font-bold text-sm text-slate-700 mb-2">Cart Items</h3>
+        <div id="cartList" class="divide-y text-sm">
+          <p class="text-slate-400 text-center py-4 text-xs">No items added yet</p>
+        </div>
+      </div>
+
+      <!-- Delivery & Payment Section -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+        
+        <!-- Payment Type -->
+        <div>
+          <label class="text-xs font-bold text-slate-700">Payment Type</label>
+          <select id="paymentType" onchange="toggleDeliveryUI()" class="w-full border p-2 rounded-lg text-sm bg-slate-50 mt-1">
+            <option value="Cash">Cash Sale</option>
+            <option value="Card">Card Payment</option>
+            <option value="Online Transfer">Online Transfer</option>
+            <option value="COD">Cash on Delivery (COD)</option>
+          </select>
+        </div>
+
+        <!-- Online Delivery Specific Fields -->
+        <div id="deliverySection" class="p-3 bg-indigo-50/50 rounded-lg border border-indigo-100 space-y-2 hidden">
+          <h4 class="font-bold text-xs text-indigo-900">🚚 Delivery Details</h4>
+          
+          <div class="grid grid-cols-2 gap-2">
             <div>
-                <div class="company-title" id="display-biz-name">Your Business Name</div>
-                <div class="company-sub" id="display-biz-sub">Business Tagline / Subtitle</div>
-                <div class="company-sub" id="display-biz-phone">Phone: 07X XXXXXXX</div>
-                <div class="company-sub" id="display-biz-address">Address: Your Business Address</div>
+              <label class="text-xs text-slate-600">Courier Service</label>
+              <select id="courierName" class="w-full text-xs border p-2 rounded bg-white">
+                <option value="Pronto">Pronto</option>
+                <option value="Domex">Domex</option>
+                <option value="Prompt Xpress">Prompt Xpress</option>
+                <option value="Fardar">Fardar</option>
+                <option value="Grasshoppers">Grasshoppers</option>
+                <option value="Other Courier">Other Courier</option>
+              </select>
             </div>
-            <div><img id="display-logo" class="logo-img" alt="Logo"></div>
-        </div>
-
-        <div class="doc-badge" id="lbl-doc-title">INVOICE</div>
-
-        <div class="input-section no-print">
-            <div class="input-grid">
-                <input type="text" id="cust-name-input" placeholder="Customer Name" oninput="updateHeader()">
-                <input type="text" id="cust-phone-input" placeholder="Customer Phone Number" oninput="updateHeader()">
-            </div>
-            <div class="input-grid" id="courier-fields-container">
-                <input type="text" id="cust-address-input" placeholder="Delivery Address (Optional)" oninput="updateHeader()">
-                <input type="text" id="courier-track-input" placeholder="Courier Tracking No (Optional)" oninput="updateHeader()">
-            </div>
-            <div class="input-grid">
-                <input type="text" id="inv-no-input" placeholder="Invoice No" oninput="updateHeader()">
-                <div>
-                    <input type="text" id="item-desc" list="stock-datalist" placeholder="Select or Type Item..." onchange="onStockItemSelected()">
-                    <datalist id="stock-datalist"></datalist>
-                </div>
-            </div>
-            <div class="input-grid">
-                <input type="number" id="item-qty" value="1" placeholder="Qty">
-                <input type="text" id="item-war" placeholder="Warranty / Note / Size">
-            </div>
-            <div class="input-grid">
-                <input type="number" id="item-price" placeholder="Price (Rs.)" onkeypress="if(event.key==='Enter') addItem();">
-                <button onclick="addItem()" class="btn-theme">+ Add Item</button>
-            </div>
-            <div style="margin-top: 8px;">
-                <label style="font-size: 11px; font-weight: bold; color: var(--theme-color);">Paid Amount (Rs.):</label>
-                <input type="number" id="paid-amount-input" placeholder="Paid amount..." oninput="calculateTotals()">
-            </div>
-        </div>
-
-        <div class="info-box">
             <div>
-                <p style="margin:2px 0;"><strong>Customer:</strong> <span id="lbl-cust">-</span></p>
-                <p style="margin:2px 0;"><strong>Phone:</strong> <span id="lbl-phone">-</span></p>
-                <p id="lbl-address-container" style="margin:2px 0; display:none;"><strong>Address:</strong> <span id="lbl-address">-</span></p>
+              <label class="text-xs text-slate-600">Delivery Charge (LKR)</label>
+              <input type="number" id="deliveryFee" value="0" oninput="calculateTotal()" class="w-full text-xs border p-2 rounded bg-white" placeholder="350">
             </div>
-            <div style="text-align: right;">
-                <p style="margin:2px 0;"><strong>Doc No:</strong> <span id="lbl-inv">INV-1001</span></p>
-                <p style="margin:2px 0;"><strong>Date:</strong> <span id="lbl-date"></span></p>
-                <p id="lbl-tracking-container" style="margin:2px 0; display:none; color: var(--theme-color);"><strong>Tracking #:</strong> <span id="lbl-tracking">-</span></p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs text-slate-600">Waybill / Tracking No</label>
+              <input type="text" id="trackingNo" class="w-full text-xs border p-2 rounded bg-white" placeholder="Ex: PR-9901">
             </div>
+            <div>
+              <label class="text-xs text-slate-600">COD Status</label>
+              <select id="codStatus" class="w-full text-xs border p-2 rounded bg-white font-bold text-amber-700">
+                <option value="COD Pending">Pending Collection</option>
+                <option value="Paid">Paid Upfront</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 45%;">Description</th>
-                    <th class="text-center" style="width: 10%;">Qty</th>
-                    <th class="text-center" style="width: 20%;" id="th-note-col">Note / Warranty</th>
-                    <th class="text-right" style="width: 25%;">Price</th>
-                    <th class="text-center no-print" style="width: 5%;"></th>
-                </tr>
-            </thead>
-            <tbody id="bill-items"></tbody>
-        </table>
-
-        <div class="total-container">
-            <div class="summary-row"><span>Sub Total:</span><span id="lbl-subtotal">Rs. 0.00</span></div>
-            <div class="summary-row" style="font-weight:bold;"><span>Net Total:</span><span id="lbl-net-total">Rs. 0.00</span></div>
-            <div class="summary-row" id="paid-row" style="color:#198754;"><span>Paid Amount:</span><span id="lbl-paid">Rs. 0.00</span></div>
-            <div class="total-box" id="due-row"><span>Balance Due:</span><span id="lbl-due">Rs. 0.00</span></div>
+        <!-- Customer Details -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-semibold text-slate-500">Customer Name</label>
+            <input type="text" id="custName" class="w-full border p-2 rounded-lg text-sm" placeholder="Optional">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-500">Phone (for WhatsApp)</label>
+            <input type="text" id="custPhone" class="w-full border p-2 rounded-lg text-sm" placeholder="07X XXX XXXX">
+          </div>
         </div>
 
-        <div class="footer-note">
-            <p style="margin: 0 0 2px 0;" id="lbl-footer-msg">THANK YOU FOR YOUR BUSINESS</p>
-            <p style="margin: 0;" id="lbl-footer-sub">NO EXCHANGE OR REFUND AFTER 7 DAYS</p>
+        <!-- Totals & Actions -->
+        <div class="pt-2 border-t space-y-2">
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-500">Subtotal:</span>
+            <span id="subTotalTxt" class="font-semibold">LKR 0.00</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-500">Delivery Fee:</span>
+            <span id="deliveryFeeTxt" class="font-semibold">LKR 0.00</span>
+          </div>
+          <div class="flex justify-between text-base font-bold text-indigo-900 pt-1 border-t">
+            <span>Grand Total:</span>
+            <span id="grandTotalTxt">LKR 0.00</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-2">
+            <button onclick="processBill('whatsapp')" class="bg-emerald-600 text-white py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-1 hover:bg-emerald-700">💬 WhatsApp Bill</button>
+            <button onclick="processBill('pdf')" class="bg-indigo-600 text-white py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-1 hover:bg-indigo-700">📄 Print / PDF</button>
+          </div>
         </div>
 
-        <div class="signatures">
-            <div class="sig-line">Customer Signature</div>
-            <div class="sig-line">Authorized Representative</div>
-        </div>
-
-        <div class="input-grid no-print" style="margin-top: 20px;">
-            <button onclick="generatePDF('A4', 'INVOICE')" class="btn-green">Download A4 PDF Invoice</button>
-            <button onclick="generatePDF('Slip', 'INVOICE')" class="btn-dark">Download 80mm Slip PDF</button>
-        </div>
-        <div class="input-grid no-print" style="margin-top: 8px;">
-            <button onclick="generatePDF('A4', 'QUOTATION')" id="btn-quotation" class="btn-theme" style="display:none;">Download Quotation PDF</button>
-            <button onclick="shareWhatsAppInvoice()" class="btn-green" style="background:#25D366;">Send WhatsApp Bill</button>
-        </div>
-        <div class="no-print" style="margin-top: 8px;">
-            <button onclick="saveAndResetInvoice()" class="btn-theme" style="width:100%; background:#6c757d;">💾 Save Invoice & New Bill</button>
-        </div>
+      </div>
     </div>
 
-    <!-- Stock Manager Modal -->
-    <div id="stock-modal" class="modal no-print">
-        <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ddd; padding-bottom:8px; margin-bottom:15px;">
-                <h3 style="margin:0;">📦 Stock & Inventory Manager</h3>
-                <button onclick="closeStockModal()" class="btn-red">X Close</button>
-            </div>
-
-            <div style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #ddd;">
-                <h4 style="margin:0 0 8px 0; font-size:13px;">+ Add New Product to Stock</h4>
-                <div class="input-grid">
-                    <input type="text" id="new-prod-name" placeholder="Item Name (e.g. Core i5 10th Gen)">
-                    <input type="number" id="new-prod-price" placeholder="Selling Price (Rs.)">
-                </div>
-                <div class="input-grid">
-                    <input type="number" id="new-prod-qty" placeholder="Available Qty (e.g. 10)">
-                    <input type="text" id="new-prod-war" placeholder="Default Note/Warranty (Optional)">
-                </div>
-                <button onclick="saveProductToStock()" class="btn-green" style="padding:8px;">Add Product to Cloud Stock</button>
-            </div>
-
-            <h4 style="margin: 10px 0 8px 0;">Current Inventory</h4>
-            <div style="overflow-x:auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Item Name</th>
-                            <th class="text-right">Price</th>
-                            <th class="text-center">In Stock</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="stock-table-body">
-                        <tr><td colspan="4" class="text-center">Loading stock...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+    <!-- STOCK VIEW -->
+    <div id="viewStock" class="space-y-4 hidden">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+        <h3 class="font-bold text-sm text-slate-700">Add / Update Product</h3>
+        <input type="text" id="stkName" class="w-full border p-2 rounded-lg text-sm" placeholder="Item Name">
+        <div class="grid grid-cols-2 gap-2">
+          <input type="number" id="stkPrice" class="w-full border p-2 rounded-lg text-sm" placeholder="Price (LKR)">
+          <input type="number" id="stkQty" class="w-full border p-2 rounded-lg text-sm" placeholder="Stock Qty">
         </div>
+        <button onclick="saveStock()" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold text-sm">Save Product</button>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <h3 class="font-bold text-sm text-slate-700 mb-2">Current Inventory</h3>
+        <div id="stockList" class="divide-y text-sm"></div>
+      </div>
     </div>
 
-    <!-- Sales History / Dashboard Modal -->
-    <div id="dashboard-modal" class="modal no-print">
-        <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ddd; padding-bottom:8px; margin-bottom:15px;">
-                <h3 style="margin:0;">📊 Sales Dashboard & Invoices History</h3>
-                <button onclick="closeDashboardModal()" class="btn-red">X Close</button>
-            </div>
-
-            <div class="dash-stats-grid">
-                <div class="stat-card">
-                    <div class="stat-lbl">Today's Sales</div>
-                    <div class="stat-val" id="dash-today-sales">Rs. 0.00</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-lbl">Total Invoices</div>
-                    <div class="stat-val" id="dash-total-invoices">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-lbl">All-Time Revenue</div>
-                    <div class="stat-val" id="dash-total-revenue">Rs. 0.00</div>
-                </div>
-            </div>
-
-            <h4 style="margin: 15px 0 8px 0;">Recent Invoices</h4>
-            <div style="overflow-x:auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Inv No</th>
-                            <th>Date</th>
-                            <th>Customer</th>
-                            <th class="text-right">Total</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dash-invoices-list">
-                        <tr><td colspan="5" class="text-center">Loading invoices...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <!-- SALES HISTORY -->
+    <div id="viewHistory" class="space-y-4 hidden">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <h3 class="font-bold text-sm text-slate-700 mb-2">Recent Bills</h3>
+        <div id="historyList" class="divide-y text-sm"></div>
+      </div>
     </div>
 
-    <!-- Master Config Modal -->
-    <div id="config-modal" class="modal no-print">
-        <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ddd; padding-bottom:8px; margin-bottom:12px;">
-                <h3 style="margin:0;">Master Settings Panel</h3>
-                <button onclick="closeConfigModal()" class="btn-red">X Close</button>
-            </div>
-            <div class="input-grid">
-                <div><label style="font-size:11px; font-weight:bold;">Unique Client Key:</label><input type="text" id="cfg-client-key" placeholder="e.g. store_01"></div>
-                <div><label style="font-size:11px; font-weight:bold;">Business Name:</label><input type="text" id="cfg-biz-name" placeholder="Business Name"></div>
-            </div>
-            <div class="input-grid">
-                <div><label style="font-size:11px; font-weight:bold;">Tagline:</label><input type="text" id="cfg-biz-sub" placeholder="Tagline"></div>
-                <div><label style="font-size:11px; font-weight:bold;">Phone:</label><input type="text" id="cfg-biz-phone" placeholder="Phone Number"></div>
-            </div>
-            <div class="input-grid">
-                <div><label style="font-size:11px; font-weight:bold;">Address:</label><input type="text" id="cfg-biz-address" placeholder="Address"></div>
-                <div>
-                    <label style="font-size:11px; font-weight:bold;">Business Type:</label>
-                    <select id="cfg-biz-type">
-                        <option value="Retail">General Retail (Classic Emerald)</option>
-                        <option value="Computer">Computer & Hardware (Dark Blue)</option>
-                        <option value="Clothing">Clothing & Boutique (Rose Pink)</option>
-                        <option value="Online">Online Delivery (Purple)</option>
-                    </select>
-                </div>
-            </div>
-            <div class="input-grid">
-                <div><label style="font-size:11px; font-weight:bold;">Expiry (YYYY/MM/DD):</label><input type="text" id="cfg-expiry" placeholder="2026/12/31"></div>
-                <div><label style="font-size:11px; font-weight:bold;">Invoice Prefix:</label><input type="text" id="cfg-prefix" placeholder="INV-"></div>
-            </div>
-            <div style="margin-bottom:10px;"><label style="font-size:11px; font-weight:bold;">Logo:</label><input type="file" id="cfg-logo-input" accept="image/*" onchange="handleConfigLogoUpload(event)"></div>
-            <div style="margin-bottom:10px;"><label style="font-size:11px; font-weight:bold;">Footer Terms:</label><input type="text" id="cfg-footer-sub" placeholder="Terms & Conditions"></div>
-            <button onclick="saveMasterConfig()" class="btn-green" style="padding:12px; margin-top:10px;">Save Settings to Cloud</button>
-        </div>
+  </main>
+
+  <!-- CONFIG MODAL -->
+  <div id="configModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl p-5 max-w-sm w-full space-y-3 max-h-[90vh] overflow-y-auto">
+      <h3 class="font-bold text-lg text-slate-800">System Configuration</h3>
+      <input type="password" id="cfgPin" class="w-full border p-2 rounded text-sm" placeholder="Master PIN (9421)">
+      
+      <div id="cfgFields" class="space-y-2 hidden">
+        <input type="text" id="cfgKey" class="w-full border p-2 rounded text-sm" placeholder="Client Key (e.g. macaria)">
+        <input type="text" id="cfgName" class="w-full border p-2 rounded text-sm" placeholder="Business Name">
+        <input type="text" id="cfgTag" class="w-full border p-2 rounded text-sm" placeholder="Tagline">
+        <input type="text" id="cfgPhone" class="w-full border p-2 rounded text-sm" placeholder="Phone">
+        <select id="cfgType" class="w-full border p-2 rounded text-sm">
+          <option value="Retail">Retail Store</option>
+          <option value="Online Delivery">Online Delivery</option>
+          <option value="Clothing">Clothing</option>
+          <option value="Computer">Computer / Tech</option>
+        </select>
+        <input type="text" id="cfgLogo" class="w-full border p-2 rounded text-sm" placeholder="Logo Image URL">
+        <input type="date" id="cfgExpiry" class="w-full border p-2 rounded text-sm">
+        <button onclick="saveConfig()" class="w-full bg-emerald-600 text-white py-2 rounded font-bold text-sm">Save Settings to Cloud</button>
+      </div>
+
+      <div class="flex justify-between pt-2">
+        <button onclick="authConfig()" id="btnAuth" class="bg-indigo-600 text-white px-4 py-1.5 rounded text-sm font-bold">Unlock</button>
+        <button onclick="closeConfig()" class="bg-slate-300 text-slate-700 px-4 py-1.5 rounded text-sm font-bold">Cancel</button>
+      </div>
     </div>
+  </div>
 
-    <script>
-        const MASTER_PIN = "9421";
-        const firebaseConfig = {
-            apiKey: "AIzaSyCN5l_bGONO3nhepyYbjucMYWv3CLMTzYKw",
-            authDomain: "bill-test-31d3e.firebaseapp.com",
-            databaseURL: "https://bill-test-31d3e-default-rtdb.firebaseio.com",
-            projectId: "bill-test-31d3e",
-            storageBucket: "bill-test-31d3e.appspot.com",
-            messagingSenderId: "635093042559",
-            appId: "1:635093042559:web:6ad22ecdc407f8c7c064a1"
-        };
+  <script>
+    // Firebase Init
+    const firebaseConfig = { databaseURL: "https://pos-billing-default-rtdb.firebaseio.com" };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        let db = null;
-        try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch(e){}
+    // Client Context
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientKey = urlParams.get('client') || 'default';
 
-        function resolveClientKey() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const keyInUrl = urlParams.get('client');
-            if (keyInUrl) {
-                let cleanKey = keyInUrl.replace(/[^a-zA-Z0-9_]/g, '_');
-                localStorage.setItem('active_erp_client_key', cleanKey);
-                return cleanKey;
-            }
-            return localStorage.getItem('active_erp_client_key') || 'default_store';
+    let config = { businessName: "Smart POS", businessType: "Retail" };
+    let cart = [];
+    let stockData = {};
+
+    // Load Config
+    db.ref('clients/' + clientKey + '/config').on('value', snap => {
+      if (snap.exists()) {
+        config = snap.val();
+        
+        // Expiry Check
+        if (config.expiry && new Date(config.expiry) < new Date()) {
+          document.body.innerHTML = `<div class="p-10 text-center font-bold text-red-600 text-xl">⚠️ License Expired!<br><span class="text-sm text-slate-500 font-normal">Please contact administrator to renew.</span></div>`;
+          return;
         }
 
-        let activeClientKey = resolveClientKey();
-        let cloudStock = {};
-
-        let defaultConfig = {
-            clientKey: activeClientKey,
-            bizName: "Your Business Name",
-            bizSub: "Business Tagline / Subtitle",
-            bizPhone: "07X XXXXXXX",
-            bizAddress: "Your Business Address",
-            bizType: "Retail",
-            currency: "Rs.",
-            prefix: "INV-",
-            expiryDate: "2026/12/31",
-            footerSub: "NO EXCHANGE OR REFUND AFTER 7 DAYS",
-            logo: ""
-        };
-
-        let items = [];
-
-        function checkLicense() {
-            const today = new Date();
-            const expiry = new Date(defaultConfig.expiryDate);
-            if (today > expiry) {
-                document.body.innerHTML = '<div style="text-align:center; padding:50px;"><h1 style="color:#dc3545;">License Expired!</h1></div>';
-                return false;
-            }
-            return true;
+        document.getElementById('storeName').innerText = config.businessName || "Smart POS";
+        document.getElementById('storeTagline').innerText = config.tagline || "Cloud Billing System";
+        if (config.logo) {
+          const logoEl = document.getElementById('storeLogo');
+          logoEl.src = config.logo;
+          logoEl.classList.remove('hidden');
         }
+        toggleDeliveryUI();
+      }
+    });
 
-        function applyThemeAndPresets(type) {
-            document.body.className = '';
-            const warInput = document.getElementById('item-war');
-            const thNote = document.getElementById('th-note-col');
-            const courierContainer = document.getElementById('courier-fields-container');
-            const quoteBtn = document.getElementById('btn-quotation');
+    // Load Stock
+    db.ref('clients/' + clientKey + '/stock').on('value', snap => {
+      stockData = snap.val() || {};
+      renderStock();
+      renderItemSelect();
+    });
 
-            if (type === 'Clothing') {
-                document.body.classList.add('theme-clothing');
-                warInput.placeholder = "Size / Color (e.g. XL - Red)";
-                thNote.innerText = "Size / Note";
-                courierContainer.style.display = 'grid';
-                quoteBtn.style.display = 'none';
-            } else if (type === 'Retail') {
-                document.body.classList.add('theme-retail');
-                warInput.placeholder = "Note / SKU";
-                thNote.innerText = "Note";
-                courierContainer.style.display = 'none';
-                quoteBtn.style.display = 'none';
-            } else if (type === 'Online') {
-                document.body.classList.add('theme-online');
-                warInput.placeholder = "Note / Item Details";
-                thNote.innerText = "Note";
-                courierContainer.style.display = 'grid';
-                quoteBtn.style.display = 'none';
-            } else {
-                document.body.classList.add('theme-computer');
-                warInput.placeholder = "Warranty / Serial No";
-                thNote.innerText = "Warranty / Serial No";
-                courierContainer.style.display = 'none';
-                quoteBtn.style.display = 'block';
-            }
+    function toggleDeliveryUI() {
+      const pType = document.getElementById('paymentType').value;
+      const isOnlineType = config.businessType === "Online Delivery";
+      const delSec = document.getElementById('deliverySection');
+      
+      if (isOnlineType || pType === 'COD') {
+        delSec.classList.remove('hidden');
+      } else {
+        delSec.classList.add('hidden');
+      }
+      calculateTotal();
+    }
+
+    function renderItemSelect() {
+      const sel = document.getElementById('itemSelect');
+      sel.innerHTML = '<option value="">-- Select Product --</option>';
+      for (let id in stockData) {
+        sel.innerHTML += `<option value="${id}">${stockData[id].name} (Qty: ${stockData[id].qty})</option>`;
+      }
+    }
+
+    function onItemSelect() {
+      const id = document.getElementById('itemSelect').value;
+      if (id && stockData[id]) {
+        document.getElementById('itemPrice').value = stockData[id].price;
+      }
+    }
+
+    function addToCart() {
+      const id = document.getElementById('itemSelect').value;
+      const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+      const qty = parseInt(document.getElementById('itemQty').value) || 1;
+
+      if (!id || price <= 0) return alert('Select item and price');
+
+      cart.push({ id, name: stockData[id].name, price, qty });
+      renderCart();
+    }
+
+    function renderCart() {
+      const el = document.getElementById('cartList');
+      if (!cart.length) return el.innerHTML = `<p class="text-slate-400 text-center py-4 text-xs">No items added yet</p>`;
+      
+      el.innerHTML = cart.map((item, i) => `
+        <div class="flex justify-between items-center py-2">
+          <div>
+            <p class="font-bold text-slate-800">${item.name}</p>
+            <p class="text-xs text-slate-500">${item.qty} x LKR ${item.price}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-indigo-900">LKR ${(item.qty * item.price).toFixed(2)}</span>
+            <button onclick="cart.splice(${i},1);renderCart();" class="text-red-500 font-bold px-1">✕</button>
+          </div>
+        </div>
+      `).join('');
+      calculateTotal();
+    }
+
+    function calculateTotal() {
+      let sub = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
+      let fee = 0;
+      const delSec = document.getElementById('deliverySection');
+      if (!delSec.classList.contains('hidden')) {
+        fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+      }
+
+      document.getElementById('subTotalTxt').innerText = `LKR ${sub.toFixed(2)}`;
+      document.getElementById('deliveryFeeTxt').innerText = `LKR ${fee.toFixed(2)}`;
+      document.getElementById('grandTotalTxt').innerText = `LKR ${(sub + fee).toFixed(2)}`;
+    }
+
+    function processBill(type) {
+      if (!cart.length) return alert('Add items to cart first');
+
+      let sub = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
+      let fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+      let pType = document.getElementById('paymentType').value;
+      let isCOD = pType === 'COD';
+
+      let billData = {
+        items: cart,
+        subtotal: sub,
+        deliveryFee: fee,
+        grandTotal: sub + fee,
+        custName: document.getElementById('custName').value,
+        custPhone: document.getElementById('custPhone').value,
+        paymentType: pType,
+        courier: isCOD || config.businessType === "Online Delivery" ? document.getElementById('courierName').value : '',
+        trackingNo: document.getElementById('trackingNo').value,
+        codStatus: isCOD ? document.getElementById('codStatus').value : 'Paid',
+        date: new Date().toISOString()
+      };
+
+      // Auto Deduct Stock
+      cart.forEach(item => {
+        if (stockData[item.id]) {
+          let newQty = (stockData[item.id].qty || 0) - item.qty;
+          db.ref('clients/' + clientKey + '/stock/' + item.id + '/qty').set(Math.max(0, newQty));
         }
+      });
 
-        function updateUIWithConfig(config) {
-            defaultConfig = config;
-            if(!checkLicense()) return;
+      // Save Sale
+      db.ref('clients/' + clientKey + '/sales').push(billData);
 
-            document.getElementById('display-biz-name').innerText = defaultConfig.bizName;
-            document.getElementById('display-biz-sub').innerText = defaultConfig.bizSub;
-            document.getElementById('display-biz-phone').innerText = "Phone: " + defaultConfig.bizPhone;
-            document.getElementById('display-biz-address').innerText = "Address: " + defaultConfig.bizAddress;
-            document.getElementById('lbl-footer-sub').innerText = defaultConfig.footerSub;
+      if (type === 'whatsapp') {
+        let phone = billData.custPhone.replace(/[^0-9]/g, '');
+        if (!phone) return alert('Enter customer phone number');
+        if (phone.startsWith('0')) phone = '94' + phone.substring(1);
 
-            const logoImg = document.getElementById('display-logo');
-            if (defaultConfig.logo) {
-                logoImg.src = defaultConfig.logo;
-            } else {
-                logoImg.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2'%3E%3Crect x='2' y='3' width='20' height='14' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='8' y1='21' x2='16' y2='21'%3E%3C/line%3E%3C/svg%3E";
-            }
+        let msg = `*${config.businessName}*\n🧾 *INVOICE*\n------------------\n`;
+        cart.forEach(i => msg += `${i.name} x${i.qty} = LKR ${(i.qty * i.price).toFixed(2)}\n`);
+        msg += `------------------\nSubtotal: LKR ${sub.toFixed(2)}\n`;
+        if (fee > 0) msg += `🚚 Delivery Charge: LKR ${fee.toFixed(2)}\n`;
+        msg += `💰 *Grand Total: LKR ${(sub + fee).toFixed(2)}*\n`;
+        msg += `💳 Payment: ${pType}`;
+        if (isCOD) msg += ` (${billData.codStatus})`;
+        if (billData.courier) msg += `\n📦 Courier: ${billData.courier}`;
+        if (billData.trackingNo) msg += `\n📌 Waybill No: ${billData.trackingNo}`;
+        msg += `\n\nThank you for doing business with us!`;
 
-            let pfx = defaultConfig.prefix || 'INV-';
-            let lastInvNo = localStorage.getItem('lastInvNo_' + defaultConfig.clientKey) || 1000;
-            let currentInvNo = pfx + (parseInt(lastInvNo) + 1);
-            document.getElementById('lbl-inv').innerText = currentInvNo;
-            document.getElementById('inv-no-input').value = currentInvNo;
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+      } else {
+        alert('Bill processed successfully!');
+      }
 
-            applyThemeAndPresets(defaultConfig.bizType);
-            loadCloudStock();
-        }
+      cart = [];
+      renderCart();
+    }
 
-        function loadMasterConfig() {
-            if (db && activeClientKey) {
-                db.ref('clients/' + activeClientKey + '/config').once('value').then((snapshot) => {
-                    const cloudConfig = snapshot.val();
-                    if (cloudConfig) {
-                        updateUIWithConfig(cloudConfig);
-                        localStorage.setItem('master_erp_config_' + activeClientKey, JSON.stringify(cloudConfig));
-                    } else {
-                        const stored = localStorage.getItem('master_erp_config_' + activeClientKey);
-                        if (stored) { try { updateUIWithConfig(JSON.parse(stored)); } catch(e){ updateUIWithConfig(defaultConfig); } }
-                        else { updateUIWithConfig(defaultConfig); }
-                    }
-                }).catch(() => {
-                    const stored = localStorage.getItem('master_erp_config_' + activeClientKey);
-                    if (stored) { try { updateUIWithConfig(JSON.parse(stored)); } catch(e){ updateUIWithConfig(defaultConfig); } }
-                    else { updateUIWithConfig(defaultConfig); }
-                });
-            } else {
-                updateUIWithConfig(defaultConfig);
-            }
-        }
+    // Stock Mgmt
+    function saveStock() {
+      let name = document.getElementById('stkName').value;
+      let price = parseFloat(document.getElementById('stkPrice').value) || 0;
+      let qty = parseInt(document.getElementById('stkQty').value) || 0;
+      if (!name) return;
 
-        function openConfigModal() {
-            let pin = prompt("Enter Master Admin PIN:");
-            if (pin === MASTER_PIN) {
-                document.getElementById('cfg-client-key').value = defaultConfig.clientKey;
-                document.getElementById('cfg-biz-name').value = defaultConfig.bizName;
-                document.getElementById('cfg-biz-sub').value = defaultConfig.bizSub;
-                document.getElementById('cfg-biz-phone').value = defaultConfig.bizPhone;
-                document.getElementById('cfg-biz-address').value = defaultConfig.bizAddress;
-                document.getElementById('cfg-biz-type').value = defaultConfig.bizType;
-                document.getElementById('cfg-footer-sub').value = defaultConfig.footerSub;
-                document.getElementById('cfg-expiry').value = defaultConfig.expiryDate || '2026/12/31';
-                document.getElementById('cfg-prefix').value = defaultConfig.prefix || 'INV-';
-                document.getElementById('config-modal').style.display = 'flex';
-            } else if(pin !== null) {
-                alert("Incorrect PIN!");
-            }
-        }
+      db.ref('clients/' + clientKey + '/stock').push({ name, price, qty });
+      document.getElementById('stkName').value = '';
+      document.getElementById('stkPrice').value = '';
+      document.getElementById('stkQty').value = '';
+    }
 
-        function closeConfigModal() { document.getElementById('config-modal').style.display = 'none'; }
+    function renderStock() {
+      const el = document.getElementById('stockList');
+      el.innerHTML = Object.keys(stockData).map(id => `
+        <div class="flex justify-between py-2 items-center">
+          <div>
+            <p class="font-bold text-slate-800">${stockData[id].name}</p>
+            <p class="text-xs text-slate-500">LKR ${stockData[id].price} | Qty: ${stockData[id].qty}</p>
+          </div>
+          <button onclick="db.ref('clients/${clientKey}/stock/${id}').remove()" class="text-red-500 text-xs font-bold">Delete</button>
+        </div>
+      `).join('');
+    }
 
-        function handleConfigLogoUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) { defaultConfig.logo = e.target.result; }
-                reader.readAsDataURL(file);
-            }
-        }
+    // Config Auth
+    function openConfig() { document.getElementById('configModal').classList.remove('hidden'); }
+    function closeConfig() { document.getElementById('configModal').classList.add('hidden'); }
+    
+    function authConfig() {
+      if (document.getElementById('cfgPin').value === '9421') {
+        document.getElementById('cfgFields').classList.remove('hidden');
+        document.getElementById('btnAuth').classList.add('hidden');
+        document.getElementById('cfgKey').value = clientKey;
+        document.getElementById('cfgName').value = config.businessName || '';
+        document.getElementById('cfgTag').value = config.tagline || '';
+        document.getElementById('cfgPhone').value = config.phone || '';
+        document.getElementById('cfgType').value = config.businessType || 'Retail';
+        document.getElementById('cfgLogo').value = config.logo || '';
+        document.getElementById('cfgExpiry').value = config.expiry || '';
+      } else alert('Invalid PIN');
+    }
 
-        function saveMasterConfig() {
-            let rawKey = document.getElementById('cfg-client-key').value.trim() || defaultConfig.clientKey;
-            let cleanKey = rawKey.replace(/[^a-zA-Z0-9_]/g, '_');
+    function saveConfig() {
+      let key = document.getElementById('cfgKey').value.trim();
+      let data = {
+        businessName: document.getElementById('cfgName').value,
+        tagline: document.getElementById('cfgTag').value,
+        phone: document.getElementById('cfgPhone').value,
+        businessType: document.getElementById('cfgType').value,
+        logo: document.getElementById('cfgLogo').value,
+        expiry: document.getElementById('cfgExpiry').value
+      };
+      db.ref('clients/' + key + '/config').set(data).then(() => {
+        alert('Config Saved!');
+        closeConfig();
+      });
+    }
 
-            defaultConfig.clientKey = cleanKey;
-            defaultConfig.bizName = document.getElementById('cfg-biz-name').value || defaultConfig.bizName;
-            defaultConfig.bizSub = document.getElementById('cfg-biz-sub').value || defaultConfig.bizSub;
-            defaultConfig.bizPhone = document.getElementById('cfg-biz-phone').value || defaultConfig.bizPhone;
-            defaultConfig.bizAddress = document.getElementById('cfg-biz-address').value || defaultConfig.bizAddress;
-            defaultConfig.bizType = document.getElementById('cfg-biz-type').value;
-            defaultConfig.footerSub = document.getElementById('cfg-footer-sub').value || defaultConfig.footerSub;
-            defaultConfig.expiryDate = document.getElementById('cfg-expiry').value || '2026/12/31';
-            defaultConfig.prefix = document.getElementById('cfg-prefix').value || 'INV-';
-
-            activeClientKey = cleanKey;
-            localStorage.setItem('active_erp_client_key', cleanKey);
-            localStorage.setItem('master_erp_config_' + cleanKey, JSON.stringify(defaultConfig));
-            
-            if (db) { 
-                db.ref('clients/' + cleanKey + '/config').set(defaultConfig).then(() => {
-                    alert('Settings Saved and Synced to Firebase Cloud!');
-                }); 
-            }
-            
-            updateUIWithConfig(defaultConfig);
-            closeConfigModal();
-        }
-
-        /* Stock Management Logic */
-        function loadCloudStock() {
-            if (db && defaultConfig.clientKey) {
-                db.ref('clients/' + defaultConfig.clientKey + '/stock').on('value', (snapshot) => {
-                    cloudStock = snapshot.val() || {};
-                    populateStockDatalist();
-                    renderStockTable();
-                });
-            }
-        }
-
-        function populateStockDatalist() {
-            const dl = document.getElementById('stock-datalist');
-            dl.innerHTML = '';
-            Object.keys(cloudStock).forEach(key => {
-                const p = cloudStock[key];
-                dl.innerHTML += `<option value="${p.name}">Rs. ${p.price} | Stock: ${p.qty}</option>`;
-            });
-        }
-
-        function onStockItemSelected() {
-            const val = document.getElementById('item-desc').value.trim();
-            const foundKey = Object.keys(cloudStock).find(k => cloudStock[k].name.toLowerCase() === val.toLowerCase());
-            if (foundKey) {
-                const prod = cloudStock[foundKey];
-                document.getElementById('item-price').value = prod.price;
-                if(prod.war) document.getElementById('item-war').value = prod.war;
-            }
-        }
-
-        function openStockModal() {
-            document.getElementById('stock-modal').style.display = 'flex';
-            renderStockTable();
-        }
-
-        function closeStockModal() { document.getElementById('stock-modal').style.display = 'none'; }
-
-        function saveProductToStock() {
-            const name = document.getElementById('new-prod-name').value.trim();
-            const price = parseFloat(document.getElementById('new-prod-price').value) || 0;
-            const qty = parseInt(document.getElementById('new-prod-qty').value) || 0;
-            const war = document.getElementById('new-prod-war').value.trim() || '';
-
-            if(!name || price <= 0) { alert('Enter valid Product Name and Price!'); return; }
-            const cleanKey = name.replace(/[^a-zA-Z0-9_-]/g, '_');
-
-            if(db && defaultConfig.clientKey) {
-                db.ref('clients/' + defaultConfig.clientKey + '/stock/' + cleanKey).set({ name, price, qty, war }).then(() => {
-                    alert('Product saved to Stock!');
-                    document.getElementById('new-prod-name').value = '';
-                    document.getElementById('new-prod-price').value = '';
-                    document.getElementById('new-prod-qty').value = '';
-                    document.getElementById('new-prod-war').value = '';
-                });
-            }
-        }
-
-        function renderStockTable() {
-            const tbody = document.getElementById('stock-table-body');
-            tbody.innerHTML = '';
-            const curr = defaultConfig.currency || 'Rs.';
-            const keys = Object.keys(cloudStock);
-            if(keys.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center">No products in stock yet.</td></tr>';
-                return;
-            }
-
-            keys.forEach(k => {
-                const p = cloudStock[k];
-                const badgeClass = p.qty <= 2 ? 'stock-low' : 'stock-ok';
-                tbody.innerHTML += `
-                    <tr>
-                        <td><strong>${p.name}</strong><br><small style="color:#666;">${p.war || ''}</small></td>
-                        <td class="text-right">${curr} ${p.price.toLocaleString()}</td>
-                        <td class="text-center"><span class="stock-badge ${badgeClass}">${p.qty}</span></td>
-                        <td class="text-center">
-                            <button onclick="updateStockQtyPrompt('${k}', ${p.qty})" class="btn-theme" style="padding:3px 6px; font-size:11px;">+ Qty</button>
-                        </td>
-                    </tr>
-                `;
-            });
-        }
-
-        function updateStockQtyPrompt(key, currentQty) {
-            let addVal = prompt(`Add Qty for ${cloudStock[key].name} (Current: ${currentQty}):`, "5");
-            if(addVal !== null && !isNaN(parseInt(addVal))) {
-                let newQty = currentQty + parseInt(addVal);
-                if(db && defaultConfig.clientKey) {
-                    db.ref('clients/' + defaultConfig.clientKey + '/stock/' + key + '/qty').set(newQty);
-                }
-            }
-        }
-
-        const today = new Date();
-        const formattedDate = today.getFullYear() + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + String(today.getDate()).padStart(2, '0');
-        document.getElementById('lbl-date').innerText = formattedDate;
-
-        function addItem() {
-            const desc = document.getElementById('item-desc').value.trim();
-            const qty = parseFloat(document.getElementById('item-qty').value) || 1;
-            const war = document.getElementById('item-war').value || '-';
-            const price = parseFloat(document.getElementById('item-price').value) || 0;
-
-            if (!desc || price <= 0) { alert('Enter Item and Price!'); return; }
-
-            // Check Stock availability
-            const foundKey = Object.keys(cloudStock).find(k => cloudStock[k].name.toLowerCase() === desc.toLowerCase());
-            if(foundKey) {
-                if(cloudStock[foundKey].qty < qty) {
-                    alert(`⚠️ Low Stock Alert! Available Qty in Stock is only ${cloudStock[foundKey].qty}`);
-                }
-            }
-
-            items.push({ desc, qty, war, price, total: qty * price });
-            renderTable();
-            document.getElementById('item-desc').value = '';
-            document.getElementById('item-qty').value = '1';
-            document.getElementById('item-war').value = '';
-            document.getElementById('item-price').value = '';
-        }
-
-        function renderTable() {
-            const tbody = document.getElementById('bill-items');
-            tbody.innerHTML = '';
-            const curr = defaultConfig.currency || 'Rs.';
-            items.forEach((item, index) => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${item.desc}</td>
-                        <td class="text-center">${item.qty}</td>
-                        <td class="text-center">${item.war}</td>
-                        <td class="text-right">${curr} ${item.price.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                        <td class="text-center no-print"><button onclick="items.splice(${index},1); renderTable();" class="btn-red">X</button></td>
-                    </tr>
-                `;
-            });
-            calculateTotals();
-        }
-
-        function calculateTotals() {
-            const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-            let paidInput = document.getElementById('paid-amount-input').value;
-            let paidAmount = parseFloat(paidInput);
-            if (isNaN(paidAmount)) paidAmount = subtotal;
-            const dueAmount = Math.max(0, subtotal - paidAmount);
-            const curr = defaultConfig.currency || 'Rs.';
-
-            document.getElementById('lbl-subtotal').innerText = curr + ' ' + subtotal.toLocaleString('en-US', {minimumFractionDigits: 2});
-            document.getElementById('lbl-net-total').innerText = curr + ' ' + subtotal.toLocaleString('en-US', {minimumFractionDigits: 2});
-            document.getElementById('lbl-paid').innerText = curr + ' ' + paidAmount.toLocaleString('en-US', {minimumFractionDigits: 2});
-            document.getElementById('lbl-due').innerText = curr + ' ' + dueAmount.toLocaleString('en-US', {minimumFractionDigits: 2});
-        }
-
-        function updateHeader() {
-            document.getElementById('lbl-cust').innerText = document.getElementById('cust-name-input').value || '-';
-            document.getElementById('lbl-phone').innerText = document.getElementById('cust-phone-input').value || '-';
-            const addrInput = document.getElementById('cust-address-input');
-            if (addrInput && addrInput.value) {
-                document.getElementById('lbl-address').innerText = addrInput.value;
-                document.getElementById('lbl-address-container').style.display = 'block';
-            } else { document.getElementById('lbl-address-container').style.display = 'none'; }
-
-            const trackInput = document.getElementById('courier-track-input');
-            if (trackInput && trackInput.value) {
-                document.getElementById('lbl-tracking').innerText = trackInput.value;
-                document.getElementById('lbl-tracking-container').style.display = 'block';
-            } else { document.getElementById('lbl-tracking-container').style.display = 'none'; }
-            calculateTotals();
-        }
-
-        function deductStockForInvoice(soldItems) {
-            if(db && defaultConfig.clientKey && Object.keys(cloudStock).length > 0) {
-                soldItems.forEach(item => {
-                    const foundKey = Object.keys(cloudStock).find(k => cloudStock[k].name.toLowerCase() === item.desc.toLowerCase());
-                    if(foundKey) {
-                        let newQty = Math.max(0, cloudStock[foundKey].qty - item.qty);
-                        db.ref('clients/' + defaultConfig.clientKey + '/stock/' + foundKey + '/qty').set(newQty);
-                    }
-                });
-            }
-        }
-
-        function saveInvoiceToCloud(invData) {
-            if (db && defaultConfig.clientKey) {
-                const cleanInvNo = invData.invNo.replace(/[^a-zA-Z0-9_-]/g, '_');
-                db.ref('clients/' + defaultConfig.clientKey + '/invoices/' + cleanInvNo).set(invData);
-                deductStockForInvoice(invData.items);
-            }
-        }
-
-        function saveAndResetInvoice() {
-            if (items.length === 0) { alert('Add items first!'); return; }
-            const invNo = document.getElementById('inv-no-input').value;
-            const custName = document.getElementById('cust-name-input').value || 'Customer';
-            const custPhone = document.getElementById('cust-phone-input').value || '-';
-            const deliveryAddr = document.getElementById('cust-address-input').value || '';
-            const trackingNo = document.getElementById('courier-track-input').value || '';
-            const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-
-            saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone, address: deliveryAddr, trackingNo, total: subtotal, items });
-
-            let num = parseInt(invNo.replace(/[^0-9]/g, '')) || 1000;
-            localStorage.setItem('lastInvNo_' + defaultConfig.clientKey, num);
-
-            alert('Invoice #' + invNo + ' Saved and Stock Deducted Successfully!');
-            
-            items = [];
-            document.getElementById('cust-name-input').value = '';
-            document.getElementById('cust-phone-input').value = '';
-            document.getElementById('cust-address-input').value = '';
-            document.getElementById('courier-track-input').value = '';
-            document.getElementById('paid-amount-input').value = '';
-            
-            let pfx = defaultConfig.prefix || 'INV-';
-            let nextInvNo = pfx + (num + 1);
-            document.getElementById('lbl-inv').innerText = nextInvNo;
-            document.getElementById('inv-no-input').value = nextInvNo;
-            
-            updateHeader();
-            renderTable();
-        }
-
-        function shareWhatsAppInvoice() {
-            if (items.length === 0) { alert('Add items first!'); return; }
-            let rawPhone = document.getElementById('cust-phone-input').value.replace(/[^0-9]/g, '');
-            if (!rawPhone) { alert('Enter Phone Number!'); return; }
-            if (rawPhone.startsWith('0')) rawPhone = '94' + rawPhone.substring(1);
-            else if (!rawPhone.startsWith('94')) rawPhone = '94' + rawPhone;
-
-            const custName = document.getElementById('cust-name-input').value || 'Customer';
-            const invNo = document.getElementById('inv-no-input').value;
-            const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-            const curr = defaultConfig.currency || 'Rs.';
-            const deliveryAddr = document.getElementById('cust-address-input').value || '';
-            const trackingNo = document.getElementById('courier-track-input').value || '';
-
-            saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone: rawPhone, address: deliveryAddr, trackingNo, total: subtotal, items });
-
-            let msg = `🛍️ *${defaultConfig.bizName.toUpperCase()}* 🛍️\n_${defaultConfig.bizSub}_\n-----------------------------------\n🧾 *INVOICE:* #${invNo}\n📅 *Date:* ${formattedDate}\n👤 *Customer:* ${custName}\n`;
-            if(deliveryAddr) msg += `📍 *Delivery Address:* ${deliveryAddr}\n`;
-            if(trackingNo) msg += `🚚 *Courier Tracking:* ${trackingNo}\n`;
-            msg += `-----------------------------------\n\n📦 *ORDER ITEMS:*\n`;
-            items.forEach((item, index) => { msg += `${index + 1}. *${item.desc}* (${item.war})\n   ${item.qty} x ${curr} ${item.price.toLocaleString()} = *${curr} ${item.total.toLocaleString()}*\n`; });
-            msg += `\n-----------------------------------\n💰 *TOTAL AMOUNT:* *${curr} ${subtotal.toLocaleString()}*\n-----------------------------------\n\nThank you for shopping with us!\n_${defaultConfig.footerSub}_`;
-
-            window.open(`https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-        }
-
-        function generatePDF(paperFormat, docType = 'INVOICE') {
-            if (items.length === 0) { alert('Add items first!'); return; }
-            const element = document.getElementById('invoice-render-area');
-            const invNo = document.getElementById('inv-no-input').value || 'INV-1001';
-            const custName = document.getElementById('cust-name-input').value || 'Customer';
-            const custPhone = document.getElementById('cust-phone-input').value || '-';
-            const deliveryAddr = document.getElementById('cust-address-input').value || '';
-            const trackingNo = document.getElementById('courier-track-input').value || '';
-            const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-
-            if(docType === 'INVOICE') {
-                saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone, address: deliveryAddr, trackingNo, total: subtotal, items });
-            }
-
-            const noPrintElements = document.querySelectorAll('.no-print');
-            noPrintElements.forEach(el => el.style.display = 'none');
-
-            if (docType === 'QUOTATION') {
-                document.getElementById('lbl-doc-title').innerText = 'QUOTATION / PRICE ESTIMATE';
-                document.getElementById('paid-row').style.display = 'none';
-                document.getElementById('due-row').style.display = 'none';
-            } else {
-                document.getElementById('lbl-doc-title').innerText = 'INVOICE';
-                document.getElementById('paid-row').style.display = 'flex';
-                document.getElementById('due-row').style.display = 'flex';
-            }
-
-            const opt = {
-                margin: 0.3,
-                filename: `${docType}_${invNo}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: paperFormat === 'Slip' ? [3.15, 8] : 'letter', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                noPrintElements.forEach(el => el.style.display = '');
-            });
-        }
-
-        /* Dashboard & History Logic */
-        let fetchedInvoices = {};
-
-        function openDashboardModal() {
-            document.getElementById('dashboard-modal').style.display = 'flex';
-            loadInvoicesHistory();
-        }
-
-        function closeDashboardModal() {
-            document.getElementById('dashboard-modal').style.display = 'none';
-        }
-
-        function loadInvoicesHistory() {
-            const tableBody = document.getElementById('dash-invoices-list');
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Fetching data from Cloud...</td></tr>';
-            const curr = defaultConfig.currency || 'Rs.';
-
-            if (db && defaultConfig.clientKey) {
-                db.ref('clients/' + defaultConfig.clientKey + '/invoices').once('value').then((snapshot) => {
-                    const data = snapshot.val();
-                    tableBody.innerHTML = '';
-                    if (!data) {
-                        tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No invoices recorded yet.</td></tr>';
-                        document.getElementById('dash-today-sales').innerText = curr + ' 0.00';
-                        document.getElementById('dash-total-invoices').innerText = '0';
-                        document.getElementById('dash-total-revenue').innerText = curr + ' 0.00';
-                        return;
-                    }
-
-                    fetchedInvoices = data;
-                    let totalRevenue = 0;
-                    let todaySales = 0;
-                    let count = 0;
-
-                    const keys = Object.keys(data).reverse();
-
-                    keys.forEach((key) => {
-                        const inv = data[key];
-                        count++;
-                        const amt = parseFloat(inv.total) || 0;
-                        totalRevenue += amt;
-                        if (inv.date === formattedDate) {
-                            todaySales += amt;
-                        }
-
-                        tableBody.innerHTML += `
-                            <tr>
-                                <td><strong>#${inv.invNo}</strong></td>
-                                <td>${inv.date}</td>
-                                <td>${inv.custName}</td>
-                                <td class="text-right"><strong>${curr} ${amt.toLocaleString('en-US', {minimumFractionDigits:2})}</strong></td>
-                                <td class="text-center">
-                                    <button onclick="loadInvoiceIntoPOS('${key}')" class="btn-theme" style="padding:4px 8px; font-size:11px;">Load / View</button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-
-                    document.getElementById('dash-today-sales').innerText = curr + ' ' + todaySales.toLocaleString('en-US', {minimumFractionDigits:2});
-                    document.getElementById('dash-total-invoices').innerText = count;
-                    document.getElementById('dash-total-revenue').innerText = curr + ' ' + totalRevenue.toLocaleString('en-US', {minimumFractionDigits:2});
-                }).catch(() => {
-                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center" style="color:red;">Error connecting to Cloud!</td></tr>';
-                });
-            }
-        }
-
-        function loadInvoiceIntoPOS(invKey) {
-            const inv = fetchedInvoices[invKey];
-            if (!inv) return;
-
-            document.getElementById('inv-no-input').value = inv.invNo;
-            document.getElementById('lbl-inv').innerText = inv.invNo;
-            document.getElementById('cust-name-input').value = inv.custName || '';
-            document.getElementById('cust-phone-input').value = inv.custPhone || '';
-            document.getElementById('cust-address-input').value = inv.address || '';
-            document.getElementById('courier-track-input').value = inv.trackingNo || '';
-            
-            items = inv.items || [];
-            updateHeader();
-            renderTable();
-            closeDashboardModal();
-            alert('Loaded Invoice #' + inv.invNo + ' to Screen!');
-        }
-
-        loadMasterConfig();
-    </script>
+    function switchTab(tab) {
+      ['Billing', 'Stock', 'History'].forEach(t => {
+        document.getElementById('view' + t).classList.add('hidden');
+        document.getElementById('tab' + t).className = 'flex-1 py-2 font-bold text-sm bg-slate-200 text-slate-700 rounded-lg';
+      });
+      document.getElementById('view' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('hidden');
+      document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).className = 'flex-1 py-2 font-bold text-sm bg-indigo-600 text-white rounded-lg shadow';
+    }
+  </script>
 </body>
 </html>
