@@ -3,280 +3,264 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Cloud POS & Billing</title>
+  <title>Master ERP - Cloud POS System</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    body { background-color: #121212; font-family: sans-serif; }
+    .paper-sheet { background: #ffffff; border-radius: 12px; border-top: 6px solid #0f766e; }
+  </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-800 pb-10">
+<body class="text-slate-800 pb-10">
 
-  <!-- Header -->
-  <header class="bg-indigo-900 text-white p-4 shadow-lg sticky top-0 z-50">
-    <div class="max-w-xl mx-auto flex justify-between items-center">
-      <div class="flex items-center gap-3">
-        <img id="storeLogo" class="w-10 h-10 rounded-full bg-white p-1 hidden object-cover" alt="Logo">
-        <div>
-          <h1 id="storeName" class="font-bold text-lg leading-tight">Smart POS</h1>
-          <p id="storeTagline" class="text-xs text-indigo-200">Cloud Billing System</p>
-        </div>
+  <!-- Top Dark Header -->
+  <header class="bg-black/90 border-b border-slate-800 text-white p-3 sticky top-0 z-50">
+    <div class="max-w-2xl mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <h1 class="font-bold text-lg tracking-wide">Master ERP</h1>
+        <span class="bg-emerald-600/30 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">☁️ Cloud</span>
       </div>
-      <button onclick="openConfig()" class="bg-indigo-700 hover:bg-indigo-600 px-3 py-1.5 rounded-lg text-xs font-semibold">⚙️ Config</button>
+      <div class="flex gap-2">
+        <button onclick="switchTab('billing')" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1 rounded text-xs font-bold text-white">📦 Stock</button>
+        <button onclick="switchTab('sales')" class="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-xs font-bold text-white">📊 Sales</button>
+        <button onclick="openConfig()" class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-xs font-bold text-slate-200">⚙️ Config</button>
+      </div>
     </div>
   </header>
 
-  <main class="max-w-xl mx-auto p-4 space-y-4">
+  <main class="max-w-2xl mx-auto p-2 sm:p-4">
 
-    <!-- Active Navigation -->
-    <div class="flex gap-2">
-      <button onclick="switchTab('billing')" id="tabBilling" class="flex-1 py-2 font-bold text-sm bg-indigo-600 text-white rounded-lg shadow">🧾 New Bill</button>
-      <button onclick="switchTab('stock')" id="tabStock" class="flex-1 py-2 font-bold text-sm bg-slate-200 text-slate-700 rounded-lg">📦 Stock</button>
-      <button onclick="switchTab('history')" id="tabHistory" class="flex-1 py-2 font-bold text-sm bg-slate-200 text-slate-700 rounded-lg">📊 Sales</button>
-    </div>
-
-    <!-- BILLING VIEW -->
-    <div id="viewBilling" class="space-y-4">
+    <!-- INVOICE SHEET -->
+    <div class="paper-sheet p-4 sm:p-6 shadow-2xl space-y-4">
       
-      <!-- Item Add Form -->
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
-        <h3 class="font-bold text-sm text-slate-700">Add Item to Cart</h3>
-        
+      <!-- Store Header -->
+      <div class="flex justify-between items-start border-b pb-3">
         <div>
-          <label class="text-xs font-semibold text-slate-500">Select Item</label>
-          <select id="itemSelect" onchange="onItemSelect()" class="w-full border p-2 rounded-lg text-sm bg-slate-50">
-            <option value="">-- Select Product --</option>
+          <h2 id="dispStoreName" class="text-2xl font-black text-emerald-700">Macaria</h2>
+          <p id="dispTagline" class="text-xs text-slate-500 font-semibold">Beauty & Cosmetics</p>
+          <p id="dispPhone" class="text-xs text-slate-600">Phone: 0742079197</p>
+          <p id="dispAddress" class="text-xs text-slate-600">Address: Mahawali building , 3rd lane.mawanella</p>
+        </div>
+        <img id="dispLogo" src="" class="h-14 object-contain" alt="Logo">
+      </div>
+
+      <!-- Badge -->
+      <div>
+        <span class="bg-emerald-700 text-white text-xs font-bold px-3 py-1 rounded tracking-wider uppercase">INVOICE</span>
+      </div>
+
+      <!-- FORM SECTION -->
+      <div class="border-2 border-dashed border-emerald-200 p-3 rounded-xl bg-emerald-50/30 space-y-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input type="text" id="custName" class="border p-2 rounded text-sm bg-white" placeholder="Customer Name" oninput="updatePreview()">
+          <input type="text" id="custPhone" class="border p-2 rounded text-sm bg-white" placeholder="Customer Phone Number" oninput="updatePreview()">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input type="text" id="invNo" class="border p-2 rounded text-sm bg-slate-100 font-semibold" readonly value="INV-1001">
+          <select id="itemSelect" onchange="onItemSelect()" class="border p-2 rounded text-sm bg-white">
+            <option value="">Select or Type Item...</option>
           </select>
         </div>
 
         <div class="grid grid-cols-2 gap-2">
+          <input type="number" id="itemQty" value="1" min="1" class="border p-2 rounded text-sm bg-white" placeholder="Qty">
+          <input type="text" id="itemNote" class="border p-2 rounded text-sm bg-white" placeholder="Note / SKU">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input type="number" id="itemPrice" class="border p-2 rounded text-sm bg-white" placeholder="Price (Rs.)">
+          <button onclick="addItem()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold p-2 rounded text-sm">+ Add Item</button>
+        </div>
+
+        <!-- NEW: Delivery & COD Options Section -->
+        <div class="pt-2 border-t border-emerald-200 grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
-            <label class="text-xs font-semibold text-slate-500">Price (LKR)</label>
-            <input type="number" id="itemPrice" class="w-full border p-2 rounded-lg text-sm" placeholder="0.00">
+            <label class="text-[11px] font-bold text-slate-600">Payment Type</label>
+            <select id="paymentType" onchange="toggleDeliveryFields()" class="border p-1.5 rounded text-xs w-full bg-white font-semibold">
+              <option value="Cash">Cash Sale</option>
+              <option value="Card">Card Payment</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="COD">Cash On Delivery (COD)</option>
+            </select>
           </div>
           <div>
-            <label class="text-xs font-semibold text-slate-500">Quantity</label>
-            <input type="number" id="itemQty" value="1" min="1" class="w-full border p-2 rounded-lg text-sm">
+            <label class="text-[11px] font-bold text-slate-600">Delivery Service</label>
+            <select id="courierName" class="border p-1.5 rounded text-xs w-full bg-white">
+              <option value="Pronto">Pronto Courier</option>
+              <option value="Domex">Domex Courier</option>
+              <option value="Prompt Xpress">Prompt Xpress</option>
+              <option value="Fardar">Fardar Express</option>
+              <option value="Other">Other Delivery</option>
+            </select>
           </div>
         </div>
 
-        <button onclick="addToCart()" class="w-full bg-slate-800 text-white py-2 rounded-lg text-sm font-bold hover:bg-slate-900">+ Add to Invoice</button>
-      </div>
-
-      <!-- Cart Table -->
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <h3 class="font-bold text-sm text-slate-700 mb-2">Cart Items</h3>
-        <div id="cartList" class="divide-y text-sm">
-          <p class="text-slate-400 text-center py-4 text-xs">No items added yet</p>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] font-bold text-slate-600">Delivery Fee (Rs.)</label>
+            <input type="number" id="deliveryFee" value="0" oninput="calculateTotals()" class="border p-1.5 rounded text-xs w-full bg-white" placeholder="0.00">
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-slate-600">Tracking / Waybill No</label>
+            <input type="text" id="trackingNo" oninput="updatePreview()" class="border p-1.5 rounded text-xs w-full bg-white" placeholder="Ex: PR-882190">
+          </div>
         </div>
-      </div>
 
-      <!-- Delivery & Payment Section -->
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
-        
-        <!-- Payment Type -->
         <div>
-          <label class="text-xs font-bold text-slate-700">Payment Type</label>
-          <select id="paymentType" onchange="toggleDeliveryUI()" class="w-full border p-2 rounded-lg text-sm bg-slate-50 mt-1">
-            <option value="Cash">Cash Sale</option>
-            <option value="Card">Card Payment</option>
-            <option value="Online Transfer">Online Transfer</option>
-            <option value="COD">Cash on Delivery (COD)</option>
-          </select>
+          <label class="text-[11px] font-bold text-slate-600">Paid Amount (Rs.)</label>
+          <input type="number" id="paidAmount" oninput="calculateTotals()" class="border p-2 rounded text-sm w-full bg-white" placeholder="Paid amount...">
         </div>
+      </div>
 
-        <!-- Online Delivery Specific Fields -->
-        <div id="deliverySection" class="p-3 bg-indigo-50/50 rounded-lg border border-indigo-100 space-y-2 hidden">
-          <h4 class="font-bold text-xs text-indigo-900">🚚 Delivery Details</h4>
-          
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs text-slate-600">Courier Service</label>
-              <select id="courierName" class="w-full text-xs border p-2 rounded bg-white">
-                <option value="Pronto">Pronto</option>
-                <option value="Domex">Domex</option>
-                <option value="Prompt Xpress">Prompt Xpress</option>
-                <option value="Fardar">Fardar</option>
-                <option value="Grasshoppers">Grasshoppers</option>
-                <option value="Other Courier">Other Courier</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-xs text-slate-600">Delivery Charge (LKR)</label>
-              <input type="number" id="deliveryFee" value="0" oninput="calculateTotal()" class="w-full text-xs border p-2 rounded bg-white" placeholder="350">
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs text-slate-600">Waybill / Tracking No</label>
-              <input type="text" id="trackingNo" class="w-full text-xs border p-2 rounded bg-white" placeholder="Ex: PR-9901">
-            </div>
-            <div>
-              <label class="text-xs text-slate-600">COD Status</label>
-              <select id="codStatus" class="w-full text-xs border p-2 rounded bg-white font-bold text-amber-700">
-                <option value="COD Pending">Pending Collection</option>
-                <option value="Paid">Paid Upfront</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Customer Details -->
-        <div class="grid grid-cols-2 gap-2">
+      <!-- INVOICE DISPLAY PREVIEW TABLE -->
+      <div id="invoicePrintArea" class="space-y-4 pt-2">
+        <div class="bg-slate-50 p-2 rounded border flex justify-between text-xs font-semibold text-slate-700">
           <div>
-            <label class="text-xs font-semibold text-slate-500">Customer Name</label>
-            <input type="text" id="custName" class="w-full border p-2 rounded-lg text-sm" placeholder="Optional">
+            <p>Customer: <span id="lblCustName" class="font-bold">-</span></p>
+            <p>Phone: <span id="lblCustPhone" class="font-bold">-</span></p>
+            <p id="lblDeliveryInfo" class="text-emerald-700 font-bold hidden"></p>
           </div>
-          <div>
-            <label class="text-xs font-semibold text-slate-500">Phone (for WhatsApp)</label>
-            <input type="text" id="custPhone" class="w-full border p-2 rounded-lg text-sm" placeholder="07X XXX XXXX">
-          </div>
-        </div>
-
-        <!-- Totals & Actions -->
-        <div class="pt-2 border-t space-y-2">
-          <div class="flex justify-between text-sm">
-            <span class="text-slate-500">Subtotal:</span>
-            <span id="subTotalTxt" class="font-semibold">LKR 0.00</span>
-          </div>
-          <div class="flex justify-between text-sm">
-            <span class="text-slate-500">Delivery Fee:</span>
-            <span id="deliveryFeeTxt" class="font-semibold">LKR 0.00</span>
-          </div>
-          <div class="flex justify-between text-base font-bold text-indigo-900 pt-1 border-t">
-            <span>Grand Total:</span>
-            <span id="grandTotalTxt">LKR 0.00</span>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2 pt-2">
-            <button onclick="processBill('whatsapp')" class="bg-emerald-600 text-white py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-1 hover:bg-emerald-700">💬 WhatsApp Bill</button>
-            <button onclick="processBill('pdf')" class="bg-indigo-600 text-white py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-1 hover:bg-indigo-700">📄 Print / PDF</button>
+          <div class="text-right">
+            <p>Doc No: <span id="lblDocNo" class="font-bold">INV-1001</span></p>
+            <p>Date: <span id="lblDate" class="font-bold">2026/08/31</span></p>
+            <p id="lblPayType" class="text-indigo-800 font-bold">Payment: Cash</p>
           </div>
         </div>
 
-      </div>
-    </div>
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="border-b-2 border-emerald-700 text-emerald-800 font-bold">
+              <th class="text-left py-1">Description</th>
+              <th class="text-center py-1">Qty</th>
+              <th class="text-center py-1">Note</th>
+              <th class="text-right py-1">Price</th>
+            </tr>
+          </thead>
+          <tbody id="cartTableBody" class="divide-y">
+            <!-- Items added dynamically -->
+          </tbody>
+        </table>
 
-    <!-- STOCK VIEW -->
-    <div id="viewStock" class="space-y-4 hidden">
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
-        <h3 class="font-bold text-sm text-slate-700">Add / Update Product</h3>
-        <input type="text" id="stkName" class="w-full border p-2 rounded-lg text-sm" placeholder="Item Name">
-        <div class="grid grid-cols-2 gap-2">
-          <input type="number" id="stkPrice" class="w-full border p-2 rounded-lg text-sm" placeholder="Price (LKR)">
-          <input type="number" id="stkQty" class="w-full border p-2 rounded-lg text-sm" placeholder="Stock Qty">
+        <!-- TOTALS SECTION -->
+        <div class="border-t-2 border-emerald-700 pt-2 text-xs space-y-1">
+          <div class="flex justify-between font-semibold text-slate-600">
+            <span>Sub Total:</span>
+            <span>Rs. <span id="dispSubTotal">0.00</span></span>
+          </div>
+          <div class="flex justify-between font-semibold text-slate-600">
+            <span>Delivery Fee:</span>
+            <span>Rs. <span id="dispDeliveryFee">0.00</span></span>
+          </div>
+          <div class="flex justify-between font-bold text-slate-800">
+            <span>Net Total:</span>
+            <span>Rs. <span id="dispNetTotal">0.00</span></span>
+          </div>
+          <div class="flex justify-between font-bold text-emerald-700">
+            <span>Paid Amount:</span>
+            <span>Rs. <span id="dispPaid">0.00</span></span>
+          </div>
+          <div class="flex justify-between font-black text-sm text-emerald-800 border-t pt-1">
+            <span>Balance Due:</span>
+            <span>Rs. <span id="dispBalance">0.00</span></span>
+          </div>
         </div>
-        <button onclick="saveStock()" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold text-sm">Save Product</button>
+
+        <!-- Footer Notice -->
+        <div class="text-center text-[10px] font-bold text-slate-500 pt-3 border-t border-dashed">
+          <p>THANK YOU FOR YOUR BUSINESS</p>
+          <p>NO EXCHANGE OR REFUND AFTER 7 DAYS</p>
+        </div>
+
+        <div class="flex justify-between pt-6 text-[10px] text-slate-400">
+          <p class="border-t border-slate-300 px-4 pt-1">Customer Signature</p>
+          <p class="border-t border-slate-300 px-4 pt-1">Authorized Representative</p>
+        </div>
       </div>
 
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <h3 class="font-bold text-sm text-slate-700 mb-2">Current Inventory</h3>
-        <div id="stockList" class="divide-y text-sm"></div>
+      <!-- ACTION BUTTONS -->
+      <div class="space-y-2 pt-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button onclick="downloadPDF('A4')" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 px-4 rounded-lg text-xs">Download A4 PDF Invoice</button>
+          <button onclick="downloadPDF('80mm')" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-4 rounded-lg text-xs">Download 80mm Slip PDF</button>
+        </div>
+        <button onclick="sendWhatsApp()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-lg text-sm">Send WhatsApp Bill</button>
       </div>
+
     </div>
-
-    <!-- SALES HISTORY -->
-    <div id="viewHistory" class="space-y-4 hidden">
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <h3 class="font-bold text-sm text-slate-700 mb-2">Recent Bills</h3>
-        <div id="historyList" class="divide-y text-sm"></div>
-      </div>
-    </div>
-
   </main>
 
   <!-- CONFIG MODAL -->
-  <div id="configModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl p-5 max-w-sm w-full space-y-3 max-h-[90vh] overflow-y-auto">
-      <h3 class="font-bold text-lg text-slate-800">System Configuration</h3>
-      <input type="password" id="cfgPin" class="w-full border p-2 rounded text-sm" placeholder="Enter Access PIN">
+  <div id="configModal" class="fixed inset-0 bg-black/70 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl p-5 max-w-sm w-full space-y-3">
+      <h3 class="font-bold text-base text-slate-800">System Configuration</h3>
+      <input type="password" id="cfgPin" class="w-full border p-2 rounded text-sm" placeholder="Enter PIN">
       
       <div id="cfgFields" class="space-y-2 hidden">
         <input type="text" id="cfgKey" class="w-full border p-2 rounded text-sm" placeholder="Client Key">
         <input type="text" id="cfgName" class="w-full border p-2 rounded text-sm" placeholder="Business Name">
         <input type="text" id="cfgTag" class="w-full border p-2 rounded text-sm" placeholder="Tagline">
         <input type="text" id="cfgPhone" class="w-full border p-2 rounded text-sm" placeholder="Phone">
-        <select id="cfgType" class="w-full border p-2 rounded text-sm">
-          <option value="Retail">Retail Store</option>
-          <option value="Online Delivery">Online Delivery</option>
-          <option value="Clothing">Clothing</option>
-          <option value="Computer">Computer / Tech</option>
-        </select>
+        <input type="text" id="cfgAddr" class="w-full border p-2 rounded text-sm" placeholder="Address">
         <input type="text" id="cfgLogo" class="w-full border p-2 rounded text-sm" placeholder="Logo Image URL">
         <input type="date" id="cfgExpiry" class="w-full border p-2 rounded text-sm">
-        <button onclick="saveConfig()" class="w-full bg-emerald-600 text-white py-2 rounded font-bold text-sm">Save Settings to Cloud</button>
+        <button onclick="saveConfig()" class="w-full bg-emerald-700 text-white py-2 rounded font-bold text-sm">Save to Cloud</button>
       </div>
 
       <div class="flex justify-between pt-2">
-        <button onclick="authConfig()" id="btnAuth" class="bg-indigo-600 text-white px-4 py-1.5 rounded text-sm font-bold">Unlock</button>
+        <button onclick="authConfig()" id="btnAuth" class="bg-emerald-700 text-white px-4 py-1.5 rounded text-sm font-bold">Unlock</button>
         <button onclick="closeConfig()" class="bg-slate-300 text-slate-700 px-4 py-1.5 rounded text-sm font-bold">Cancel</button>
       </div>
     </div>
   </div>
 
   <script>
-    // Firebase Init
     const firebaseConfig = { databaseURL: "https://pos-billing-default-rtdb.firebaseio.com" };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Client Context
     const urlParams = new URLSearchParams(window.location.search);
-    const clientKey = urlParams.get('client') || 'default';
+    const clientKey = urlParams.get('client') || 'macaria';
 
-    let config = { businessName: "Smart POS", businessType: "Retail" };
+    let config = {};
     let cart = [];
     let stockData = {};
+
+    // Today Date
+    document.getElementById('lblDate').innerText = new Date().toISOString().split('T')[0].replace(/-/g, '/');
 
     // Load Config
     db.ref('clients/' + clientKey + '/config').on('value', snap => {
       if (snap.exists()) {
         config = snap.val();
         
-        // Expiry Check
+        // Expiry check
         if (config.expiry && new Date(config.expiry) < new Date()) {
-          document.body.innerHTML = `<div class="p-10 text-center font-bold text-red-600 text-xl">⚠️ License Expired!<br><span class="text-sm text-slate-500 font-normal">Please contact administrator to renew.</span></div>`;
+          document.body.innerHTML = `<div class="p-10 text-center font-bold text-red-500 text-xl bg-black h-screen">⚠️ System Expired!<br><span class="text-sm text-slate-400">Contact Admin to Renew.</span></div>`;
           return;
         }
 
-        document.getElementById('storeName').innerText = config.businessName || "Smart POS";
-        document.getElementById('storeTagline').innerText = config.tagline || "Cloud Billing System";
+        document.getElementById('dispStoreName').innerText = config.businessName || "Macaria";
+        document.getElementById('dispTagline').innerText = config.tagline || "Beauty & Cosmetics";
+        document.getElementById('dispPhone').innerText = "Phone: " + (config.phone || "0742079197");
+        document.getElementById('dispAddress').innerText = "Address: " + (config.address || "Mahawali building , 3rd lane.mawanella");
         if (config.logo) {
-          const logoEl = document.getElementById('storeLogo');
-          logoEl.src = config.logo;
-          logoEl.classList.remove('hidden');
+          document.getElementById('dispLogo').src = config.logo;
         }
-        toggleDeliveryUI();
       }
     });
 
     // Load Stock
     db.ref('clients/' + clientKey + '/stock').on('value', snap => {
       stockData = snap.val() || {};
-      renderStock();
-      renderItemSelect();
-    });
-
-    function toggleDeliveryUI() {
-      const pType = document.getElementById('paymentType').value;
-      const isOnlineType = config.businessType === "Online Delivery";
-      const delSec = document.getElementById('deliverySection');
-      
-      if (isOnlineType || pType === 'COD') {
-        delSec.classList.remove('hidden');
-      } else {
-        delSec.classList.add('hidden');
-      }
-      calculateTotal();
-    }
-
-    function renderItemSelect() {
       const sel = document.getElementById('itemSelect');
-      sel.innerHTML = '<option value="">-- Select Product --</option>';
+      sel.innerHTML = '<option value="">Select or Type Item...</option>';
       for (let id in stockData) {
-        sel.innerHTML += `<option value="${id}">${stockData[id].name} (Qty: ${stockData[id].qty})</option>`;
+        sel.innerHTML += `<option value="${id}">${stockData[id].name}</option>`;
       }
-    }
+    });
 
     function onItemSelect() {
       const id = document.getElementById('itemSelect').value;
@@ -285,131 +269,101 @@
       }
     }
 
-    function addToCart() {
-      const id = document.getElementById('itemSelect').value;
-      const price = parseFloat(document.getElementById('itemPrice').value) || 0;
-      const qty = parseInt(document.getElementById('itemQty').value) || 1;
+    function addItem() {
+      let sel = document.getElementById('itemSelect');
+      let name = sel.options[sel.selectedIndex]?.text || '';
+      let price = parseFloat(document.getElementById('itemPrice').value) || 0;
+      let qty = parseInt(document.getElementById('itemQty').value) || 1;
+      let note = document.getElementById('itemNote').value || '-';
 
-      if (!id || price <= 0) return alert('Select item and price');
+      if (!name || sel.value === "" || price <= 0) return alert('Select a valid item & price');
 
-      cart.push({ id, name: stockData[id].name, price, qty });
+      cart.push({ name, qty, note, price });
       renderCart();
     }
 
     function renderCart() {
-      const el = document.getElementById('cartList');
-      if (!cart.length) return el.innerHTML = `<p class="text-slate-400 text-center py-4 text-xs">No items added yet</p>`;
-      
-      el.innerHTML = cart.map((item, i) => `
-        <div class="flex justify-between items-center py-2">
-          <div>
-            <p class="font-bold text-slate-800">${item.name}</p>
-            <p class="text-xs text-slate-500">${item.qty} x LKR ${item.price}</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-indigo-900">LKR ${(item.qty * item.price).toFixed(2)}</span>
-            <button onclick="cart.splice(${i},1);renderCart();" class="text-red-500 font-bold px-1">✕</button>
-          </div>
-        </div>
+      const tbody = document.getElementById('cartTableBody');
+      tbody.innerHTML = cart.map((item, i) => `
+        <tr class="py-1">
+          <td class="py-1 font-semibold">${item.name}</td>
+          <td class="text-center py-1">${item.qty}</td>
+          <td class="text-center py-1 text-slate-500">${item.note}</td>
+          <td class="text-right py-1 font-bold">Rs. ${(item.qty * item.price).toFixed(2)}</td>
+        </tr>
       `).join('');
-      calculateTotal();
+      calculateTotals();
     }
 
-    function calculateTotal() {
-      let sub = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
-      let fee = 0;
-      const delSec = document.getElementById('deliverySection');
-      if (!delSec.classList.contains('hidden')) {
-        fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+    function toggleDeliveryFields() {
+      updatePreview();
+    }
+
+    function updatePreview() {
+      document.getElementById('lblCustName').innerText = document.getElementById('custName').value || '-';
+      document.getElementById('lblCustPhone').innerText = document.getElementById('custPhone').value || '-';
+      
+      let pType = document.getElementById('paymentType').value;
+      let courier = document.getElementById('courierName').value;
+      let track = document.getElementById('trackingNo').value;
+      
+      document.getElementById('lblPayType').innerText = "Payment: " + pType;
+
+      let delInfoEl = document.getElementById('lblDeliveryInfo');
+      if (pType === 'COD' || track || courier) {
+        delInfoEl.classList.remove('hidden');
+        delInfoEl.innerText = `Courier: ${courier} ${track ? '| Track: ' + track : ''}`;
+      } else {
+        delInfoEl.classList.add('hidden');
       }
-
-      document.getElementById('subTotalTxt').innerText = `LKR ${sub.toFixed(2)}`;
-      document.getElementById('deliveryFeeTxt').innerText = `LKR ${fee.toFixed(2)}`;
-      document.getElementById('grandTotalTxt').innerText = `LKR ${(sub + fee).toFixed(2)}`;
     }
 
-    function processBill(type) {
-      if (!cart.length) return alert('Add items to cart first');
-
+    function calculateTotals() {
       let sub = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
       let fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+      let net = sub + fee;
+      let paid = parseFloat(document.getElementById('paidAmount').value) || 0;
+      let bal = net - paid;
+
+      document.getElementById('dispSubTotal').innerText = sub.toFixed(2);
+      document.getElementById('dispDeliveryFee').innerText = fee.toFixed(2);
+      document.getElementById('dispNetTotal').innerText = net.toFixed(2);
+      document.getElementById('dispPaid').innerText = paid.toFixed(2);
+      document.getElementById('dispBalance').innerText = bal.toFixed(2);
+    }
+
+    function sendWhatsApp() {
+      let phone = document.getElementById('custPhone').value.replace(/[^0-9]/g, '');
+      if (!phone) return alert('Customer phone number required!');
+      if (phone.startsWith('0')) phone = '94' + phone.substring(1);
+
+      let sub = parseFloat(document.getElementById('dispSubTotal').innerText);
+      let fee = parseFloat(document.getElementById('dispDeliveryFee').innerText);
+      let net = parseFloat(document.getElementById('dispNetTotal').innerText);
       let pType = document.getElementById('paymentType').value;
-      let isCOD = pType === 'COD';
 
-      let billData = {
-        items: cart,
-        subtotal: sub,
-        deliveryFee: fee,
-        grandTotal: sub + fee,
-        custName: document.getElementById('custName').value,
-        custPhone: document.getElementById('custPhone').value,
-        paymentType: pType,
-        courier: isCOD || config.businessType === "Online Delivery" ? document.getElementById('courierName').value : '',
-        trackingNo: document.getElementById('trackingNo').value,
-        codStatus: isCOD ? document.getElementById('codStatus').value : 'Paid',
-        date: new Date().toISOString()
+      let msg = `*${config.businessName || 'Macaria'}*\n🧾 *INVOICE: ${document.getElementById('invNo').value}*\n------------------\n`;
+      cart.forEach(i => msg += `${i.name} (${i.qty}x) = Rs. ${(i.qty * i.price).toFixed(2)}\n`);
+      msg += `------------------\nSub Total: Rs. ${sub.toFixed(2)}\n`;
+      if (fee > 0) msg += `🚚 Delivery Fee: Rs. ${fee.toFixed(2)}\n`;
+      msg += `💰 *Net Total: Rs. ${net.toFixed(2)}*\n`;
+      msg += `💳 Payment: *${pType}*\n`;
+      if (pType === 'COD') msg += `📦 Courier: ${document.getElementById('courierName').value}\n📌 Waybill: ${document.getElementById('trackingNo').value || 'N/A'}\n`;
+      msg += `\nThank you for doing business with us!`;
+
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    function downloadPDF(type) {
+      let element = document.getElementById('invoicePrintArea');
+      let opt = {
+        margin: 0.2,
+        filename: `Invoice_${document.getElementById('invNo').value}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: type === '80mm' ? [3.15, 8] : 'a4', orientation: 'portrait' }
       };
-
-      // Auto Deduct Stock
-      cart.forEach(item => {
-        if (stockData[item.id]) {
-          let newQty = (stockData[item.id].qty || 0) - item.qty;
-          db.ref('clients/' + clientKey + '/stock/' + item.id + '/qty').set(Math.max(0, newQty));
-        }
-      });
-
-      // Save Sale
-      db.ref('clients/' + clientKey + '/sales').push(billData);
-
-      if (type === 'whatsapp') {
-        let phone = billData.custPhone.replace(/[^0-9]/g, '');
-        if (!phone) return alert('Enter customer phone number');
-        if (phone.startsWith('0')) phone = '94' + phone.substring(1);
-
-        let msg = `*${config.businessName}*\n🧾 *INVOICE*\n------------------\n`;
-        cart.forEach(i => msg += `${i.name} x${i.qty} = LKR ${(i.qty * i.price).toFixed(2)}\n`);
-        msg += `------------------\nSubtotal: LKR ${sub.toFixed(2)}\n`;
-        if (fee > 0) msg += `🚚 Delivery Charge: LKR ${fee.toFixed(2)}\n`;
-        msg += `💰 *Grand Total: LKR ${(sub + fee).toFixed(2)}*\n`;
-        msg += `💳 Payment: ${pType}`;
-        if (isCOD) msg += ` (${billData.codStatus})`;
-        if (billData.courier) msg += `\n📦 Courier: ${billData.courier}`;
-        if (billData.trackingNo) msg += `\n📌 Waybill No: ${billData.trackingNo}`;
-        msg += `\n\nThank you for doing business with us!`;
-
-        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-      } else {
-        alert('Bill processed successfully!');
-      }
-
-      cart = [];
-      renderCart();
-    }
-
-    // Stock Mgmt
-    function saveStock() {
-      let name = document.getElementById('stkName').value;
-      let price = parseFloat(document.getElementById('stkPrice').value) || 0;
-      let qty = parseInt(document.getElementById('stkQty').value) || 0;
-      if (!name) return;
-
-      db.ref('clients/' + clientKey + '/stock').push({ name, price, qty });
-      document.getElementById('stkName').value = '';
-      document.getElementById('stkPrice').value = '';
-      document.getElementById('stkQty').value = '';
-    }
-
-    function renderStock() {
-      const el = document.getElementById('stockList');
-      el.innerHTML = Object.keys(stockData).map(id => `
-        <div class="flex justify-between py-2 items-center">
-          <div>
-            <p class="font-bold text-slate-800">${stockData[id].name}</p>
-            <p class="text-xs text-slate-500">LKR ${stockData[id].price} | Qty: ${stockData[id].qty}</p>
-          </div>
-          <button onclick="db.ref('clients/${clientKey}/stock/${id}').remove()" class="text-red-500 text-xs font-bold">Delete</button>
-        </div>
-      `).join('');
+      html2pdf().set(opt).from(element).save();
     }
 
     // Config Auth
@@ -424,7 +378,7 @@
         document.getElementById('cfgName').value = config.businessName || '';
         document.getElementById('cfgTag').value = config.tagline || '';
         document.getElementById('cfgPhone').value = config.phone || '';
-        document.getElementById('cfgType').value = config.businessType || 'Retail';
+        document.getElementById('cfgAddr').value = config.address || '';
         document.getElementById('cfgLogo').value = config.logo || '';
         document.getElementById('cfgExpiry').value = config.expiry || '';
       } else alert('Invalid PIN');
@@ -436,23 +390,15 @@
         businessName: document.getElementById('cfgName').value,
         tagline: document.getElementById('cfgTag').value,
         phone: document.getElementById('cfgPhone').value,
-        businessType: document.getElementById('cfgType').value,
+        address: document.getElementById('cfgAddr').value,
         logo: document.getElementById('cfgLogo').value,
         expiry: document.getElementById('cfgExpiry').value
       };
       db.ref('clients/' + key + '/config').set(data).then(() => {
         alert('Config Saved!');
         closeConfig();
+        location.reload();
       });
-    }
-
-    function switchTab(tab) {
-      ['Billing', 'Stock', 'History'].forEach(t => {
-        document.getElementById('view' + t).classList.add('hidden');
-        document.getElementById('tab' + t).className = 'flex-1 py-2 font-bold text-sm bg-slate-200 text-slate-700 rounded-lg';
-      });
-      document.getElementById('view' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('hidden');
-      document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).className = 'flex-1 py-2 font-bold text-sm bg-indigo-600 text-white rounded-lg shadow';
     }
   </script>
 </body>
