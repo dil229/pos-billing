@@ -753,14 +753,26 @@
 
             saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone: rawPhone, address: deliveryAddr, trackingNo, paymentStatus, total: subtotal, items });
 
-            // Clean text without problematic encoding characters for PC WhatsApp Web
-            let msg = `*${defaultConfig.bizName.toUpperCase()}*\n_${defaultConfig.bizSub}_\n-----------------------------------\n*INVOICE:* #${invNo}\n*Date:* ${formattedDate}\n*Customer:* ${custName}\n`;
-            if(deliveryAddr) msg += `*Delivery Address:* ${deliveryAddr}\n`;
-            if(trackingNo) msg += `*Courier Tracking:* ${trackingNo}\n`;
-            if(paymentStatus) msg += `*Payment Method:* ${paymentStatus}\n`;
-            msg += `-----------------------------------\n\n*ORDER ITEMS:*\n`;
-            items.forEach((item, index) => { msg += `${index + 1}. *${item.desc}* (${item.war})\n   ${item.qty} x ${curr} ${item.price.toLocaleString()} = *${curr} ${item.total.toLocaleString()}*\n`; });
-            msg += `\n-----------------------------------\n*TOTAL AMOUNT:* *${curr} ${subtotal.toLocaleString()}*\n-----------------------------------\n\nThank you for shopping with us!\n_${defaultConfig.footerSub}_`;
+            // Cross-Platform Compatible Formatting (Mobile + PC Clean Render)
+            let msg = `✨ *${defaultConfig.bizName.toUpperCase()}* ✨\n_${defaultConfig.bizSub}_\n-----------------------------------\n`;
+            msg += `📄 *INVOICE:* #${invNo}\n`;
+            msg += `📅 *Date:* ${formattedDate}\n`;
+            msg += `👤 *Customer:* ${custName}\n`;
+            if(deliveryAddr) msg += `📍 *Delivery Address:* ${deliveryAddr}\n`;
+            if(trackingNo) msg += `🚚 *Courier Tracking:* ${trackingNo}\n`;
+            if(paymentStatus) msg += `💳 *Payment Method:* ${paymentStatus}\n`;
+            msg += `-----------------------------------\n\n`;
+            msg += `🛍️ *ORDER ITEMS:*\n`;
+            
+            items.forEach((item, index) => { 
+                msg += `${index + 1}. *${item.desc}* (${item.war})\n   ${item.qty} x ${curr} ${item.price.toLocaleString()} = *${curr} ${item.total.toLocaleString()}*\n`; 
+            });
+            
+            msg += `\n-----------------------------------\n`;
+            msg += `💰 *TOTAL AMOUNT:* *${curr} ${subtotal.toLocaleString()}*\n`;
+            msg += `-----------------------------------\n\n`;
+            msg += `Thank you for shopping with us! 🙏\n`;
+            msg += `_${defaultConfig.footerSub}_`;
 
             window.open(`https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`, '_blank');
         }
