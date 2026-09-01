@@ -114,11 +114,13 @@
                 <input type="text" id="cust-name-input" placeholder="Customer Name" oninput="updateHeader()">
                 <input type="text" id="cust-phone-input" placeholder="Customer Phone Number" oninput="updateHeader()">
             </div>
-            <!-- Delivery Options Fields -->
-            <div class="input-grid" id="courier-fields-container" style="display: grid;">
-                <input type="text" id="cust-address-input" placeholder="Delivery Address (Optional)" oninput="updateHeader()">
+            
+            <!-- Delivery Options Fields (Online Delivery සඳහා පමණක් පෙන්වනු ලැබේ) -->
+            <div class="input-grid" id="courier-fields-container" style="display: none;">
+                <input type="text" id="cust-address-input" placeholder="Delivery Address" oninput="updateHeader()">
                 <input type="text" id="courier-track-input" placeholder="Courier Tracking No (Optional)" oninput="updateHeader()">
             </div>
+
             <div class="input-grid">
                 <input type="text" id="inv-no-input" placeholder="Invoice No" oninput="updateHeader()">
                 <div>
@@ -373,14 +375,21 @@
 
         function applyThemeAndPresets(type) {
             document.body.className = '';
+            const courierFieldsContainer = document.getElementById('courier-fields-container');
+
             if (type === 'Clothing') {
                 document.body.classList.add('theme-clothing');
+                courierFieldsContainer.style.display = 'none';
             } else if (type === 'Retail') {
                 document.body.classList.add('theme-retail');
+                courierFieldsContainer.style.display = 'none';
             } else if (type === 'Online') {
                 document.body.classList.add('theme-online');
+                // Online Delivery ලෙස තෝරාගත් විට Delivery fields දර්ශනය වේ
+                courierFieldsContainer.style.display = 'grid';
             } else {
                 document.body.classList.add('theme-computer');
+                courierFieldsContainer.style.display = 'none';
             }
         }
 
