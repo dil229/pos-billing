@@ -70,8 +70,58 @@
         </div>
       </div>
 
-      <!-- Customer Details & Totals -->
+      <!-- Delivery & Payment Section -->
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+        
+        <!-- Payment Type -->
+        <div>
+          <label class="text-xs font-bold text-slate-700">Payment Type</label>
+          <select id="paymentType" onchange="toggleDeliveryUI()" class="w-full border p-2 rounded-lg text-sm bg-slate-50 mt-1">
+            <option value="Cash">Cash Sale</option>
+            <option value="Card">Card Payment</option>
+            <option value="Online Transfer">Online Transfer</option>
+            <option value="COD">Cash on Delivery (COD)</option>
+          </select>
+        </div>
+
+        <!-- Online Delivery Specific Fields -->
+        <div id="deliverySection" class="p-3 bg-indigo-50/50 rounded-lg border border-indigo-100 space-y-2 hidden">
+          <h4 class="font-bold text-xs text-indigo-900">🚚 Delivery Details</h4>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs text-slate-600">Courier Service</label>
+              <select id="courierName" class="w-full text-xs border p-2 rounded bg-white">
+                <option value="Pronto">Pronto</option>
+                <option value="Domex">Domex</option>
+                <option value="Prompt Xpress">Prompt Xpress</option>
+                <option value="Fardar">Fardar</option>
+                <option value="Grasshoppers">Grasshoppers</option>
+                <option value="Other Courier">Other Courier</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-600">Delivery Charge (LKR)</label>
+              <input type="number" id="deliveryFee" value="0" oninput="calculateTotal()" class="w-full text-xs border p-2 rounded bg-white" placeholder="350">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs text-slate-600">Waybill / Tracking No</label>
+              <input type="text" id="trackingNo" class="w-full text-xs border p-2 rounded bg-white" placeholder="Ex: PR-9901">
+            </div>
+            <div>
+              <label class="text-xs text-slate-600">COD Status</label>
+              <select id="codStatus" class="w-full text-xs border p-2 rounded bg-white font-bold text-amber-700">
+                <option value="COD Pending">Pending Collection</option>
+                <option value="Paid">Paid Upfront</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Customer Details -->
         <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="text-xs font-semibold text-slate-500">Customer Name</label>
@@ -85,7 +135,15 @@
 
         <!-- Totals & Actions -->
         <div class="pt-2 border-t space-y-2">
-          <div class="flex justify-between text-base font-bold text-indigo-900 pt-1">
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-500">Subtotal:</span>
+            <span id="subTotalTxt" class="font-semibold">LKR 0.00</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-500">Delivery Fee:</span>
+            <span id="deliveryFeeTxt" class="font-semibold">LKR 0.00</span>
+          </div>
+          <div class="flex justify-between text-base font-bold text-indigo-900 pt-1 border-t">
             <span>Grand Total:</span>
             <span id="grandTotalTxt">LKR 0.00</span>
           </div>
@@ -131,15 +189,16 @@
   <div id="configModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl p-5 max-w-sm w-full space-y-3 max-h-[90vh] overflow-y-auto">
       <h3 class="font-bold text-lg text-slate-800">System Configuration</h3>
-      <input type="password" id="cfgPin" class="w-full border p-2 rounded text-sm" placeholder="Master PIN (9421)">
+      <input type="password" id="cfgPin" class="w-full border p-2 rounded text-sm" placeholder="Enter Access PIN">
       
       <div id="cfgFields" class="space-y-2 hidden">
-        <input type="text" id="cfgKey" class="w-full border p-2 rounded text-sm" placeholder="Client Key (e.g. macaria)">
+        <input type="text" id="cfgKey" class="w-full border p-2 rounded text-sm" placeholder="Client Key">
         <input type="text" id="cfgName" class="w-full border p-2 rounded text-sm" placeholder="Business Name">
         <input type="text" id="cfgTag" class="w-full border p-2 rounded text-sm" placeholder="Tagline">
         <input type="text" id="cfgPhone" class="w-full border p-2 rounded text-sm" placeholder="Phone">
         <select id="cfgType" class="w-full border p-2 rounded text-sm">
           <option value="Retail">Retail Store</option>
+          <option value="Online Delivery">Online Delivery</option>
           <option value="Clothing">Clothing</option>
           <option value="Computer">Computer / Tech</option>
         </select>
@@ -187,6 +246,7 @@
           logoEl.src = config.logo;
           logoEl.classList.remove('hidden');
         }
+        toggleDeliveryUI();
       }
     });
 
@@ -196,6 +256,19 @@
       renderStock();
       renderItemSelect();
     });
+
+    function toggleDeliveryUI() {
+      const pType = document.getElementById('paymentType').value;
+      const isOnlineType = config.businessType === "Online Delivery";
+      const delSec = document.getElementById('deliverySection');
+      
+      if (isOnlineType || pType === 'COD') {
+        delSec.classList.remove('hidden');
+      } else {
+        delSec.classList.add('hidden');
+      }
+      calculateTotal();
+    }
 
     function renderItemSelect() {
       const sel = document.getElementById('itemSelect');
@@ -244,19 +317,36 @@
 
     function calculateTotal() {
       let sub = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
-      document.getElementById('grandTotalTxt').innerText = `LKR ${sub.toFixed(2)}`;
+      let fee = 0;
+      const delSec = document.getElementById('deliverySection');
+      if (!delSec.classList.contains('hidden')) {
+        fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+      }
+
+      document.getElementById('subTotalTxt').innerText = `LKR ${sub.toFixed(2)}`;
+      document.getElementById('deliveryFeeTxt').innerText = `LKR ${fee.toFixed(2)}`;
+      document.getElementById('grandTotalTxt').innerText = `LKR ${(sub + fee).toFixed(2)}`;
     }
 
     function processBill(type) {
       if (!cart.length) return alert('Add items to cart first');
 
       let sub = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
+      let fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+      let pType = document.getElementById('paymentType').value;
+      let isCOD = pType === 'COD';
 
       let billData = {
         items: cart,
-        grandTotal: sub,
+        subtotal: sub,
+        deliveryFee: fee,
+        grandTotal: sub + fee,
         custName: document.getElementById('custName').value,
         custPhone: document.getElementById('custPhone').value,
+        paymentType: pType,
+        courier: isCOD || config.businessType === "Online Delivery" ? document.getElementById('courierName').value : '',
+        trackingNo: document.getElementById('trackingNo').value,
+        codStatus: isCOD ? document.getElementById('codStatus').value : 'Paid',
         date: new Date().toISOString()
       };
 
@@ -278,8 +368,14 @@
 
         let msg = `*${config.businessName}*\n🧾 *INVOICE*\n------------------\n`;
         cart.forEach(i => msg += `${i.name} x${i.qty} = LKR ${(i.qty * i.price).toFixed(2)}\n`);
-        msg += `------------------\n`;
-        msg += `💰 *Grand Total: LKR ${sub.toFixed(2)}*\n\nThank you for doing business with us!`;
+        msg += `------------------\nSubtotal: LKR ${sub.toFixed(2)}\n`;
+        if (fee > 0) msg += `🚚 Delivery Charge: LKR ${fee.toFixed(2)}\n`;
+        msg += `💰 *Grand Total: LKR ${(sub + fee).toFixed(2)}*\n`;
+        msg += `💳 Payment: ${pType}`;
+        if (isCOD) msg += ` (${billData.codStatus})`;
+        if (billData.courier) msg += `\n📦 Courier: ${billData.courier}`;
+        if (billData.trackingNo) msg += `\n📌 Waybill No: ${billData.trackingNo}`;
+        msg += `\n\nThank you for doing business with us!`;
 
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
       } else {
