@@ -87,12 +87,12 @@
     <div class="master-bar no-print">
         <div class="master-brand">
             <span>Master ERP</span>
-            <span class="cloud-status">☁️ Cloud</span>
+            <span class="cloud-status">Cloud</span>
         </div>
         <div class="nav-actions">
-            <button onclick="openStockModal()" class="btn-theme" style="background:#fd7e14; font-size: 11px;">📦 Stock</button>
-            <button onclick="openDashboardModal()" class="btn-theme" style="background:#0d6efd; font-size: 11px;">📊 Sales</button>
-            <button onclick="openConfigModal()" class="btn-theme" style="font-size: 11px;">⚙️ Config</button>
+            <button onclick="openStockModal()" class="btn-theme" style="background:#fd7e14; font-size: 11px;">Stock</button>
+            <button onclick="openDashboardModal()" class="btn-theme" style="background:#0d6efd; font-size: 11px;">Sales</button>
+            <button onclick="openConfigModal()" class="btn-theme" style="font-size: 11px;">Config</button>
         </div>
     </div>
 
@@ -115,12 +115,10 @@
                 <input type="text" id="cust-phone-input" placeholder="Customer Phone Number" oninput="updateHeader()">
             </div>
             
-            <!-- Delivery Options Fields (Online Delivery සඳහා පමණක් පෙන්වනු ලැබේ) -->
             <div class="input-grid" id="courier-fields-container" style="display: none;">
                 <input type="text" id="cust-address-input" placeholder="Delivery Address" oninput="updateHeader()">
                 <input type="text" id="courier-track-input" placeholder="Courier Tracking No (Optional)" oninput="updateHeader()">
                 
-                <!-- අලුතින් එකතු කළ Payment/Delivery Status Option එක -->
                 <div style="grid-column: span 2;">
                     <select id="payment-status-input" onchange="updateHeader()">
                         <option value="Cash on Delivery (COD)">Cash on Delivery (COD)</option>
@@ -213,7 +211,7 @@
     <div id="stock-modal" class="modal no-print">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ddd; padding-bottom:8px; margin-bottom:15px;">
-                <h3 style="margin:0;">📦 Stock & Inventory Manager</h3>
+                <h3 style="margin:0;">Stock & Inventory Manager</h3>
                 <button onclick="closeStockModal()" class="btn-red">X Close</button>
             </div>
 
@@ -253,7 +251,7 @@
     <div id="dashboard-modal" class="modal no-print">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ddd; padding-bottom:8px; margin-bottom:15px;">
-                <h3 style="margin:0;">📊 Sales Dashboard & Invoices History</h3>
+                <h3 style="margin:0;">Sales Dashboard & Invoices History</h3>
                 <button onclick="closeDashboardModal()" class="btn-red">X Close</button>
             </div>
 
@@ -617,7 +615,7 @@
             const foundKey = Object.keys(cloudStock).find(k => cloudStock[k].name.toLowerCase() === desc.toLowerCase());
             if(foundKey) {
                 if(cloudStock[foundKey].qty < qty) {
-                    alert(`⚠️ Low Stock Alert! Available Qty in Stock is only ${cloudStock[foundKey].qty}`);
+                    alert(`Low Stock Alert! Available Qty in Stock is only ${cloudStock[foundKey].qty}`);
                 }
             }
 
@@ -755,13 +753,14 @@
 
             saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone: rawPhone, address: deliveryAddr, trackingNo, paymentStatus, total: subtotal, items });
 
-            let msg = `🛍️ *${defaultConfig.bizName.toUpperCase()}* 🛍️\n_${defaultConfig.bizSub}_\n-----------------------------------\n🧾 *INVOICE:* #${invNo}\n📅 *Date:* ${formattedDate}\n👤 *Customer:* ${custName}\n`;
-            if(deliveryAddr) msg += `📍 *Delivery Address:* ${deliveryAddr}\n`;
-            if(trackingNo) msg += `🚚 *Courier Tracking:* ${trackingNo}\n`;
-            if(paymentStatus) msg += `💳 *Payment Method:* ${paymentStatus}\n`;
-            msg += `-----------------------------------\n\n📦 *ORDER ITEMS:*\n`;
+            // Clean text without problematic encoding characters for PC WhatsApp Web
+            let msg = `*${defaultConfig.bizName.toUpperCase()}*\n_${defaultConfig.bizSub}_\n-----------------------------------\n*INVOICE:* #${invNo}\n*Date:* ${formattedDate}\n*Customer:* ${custName}\n`;
+            if(deliveryAddr) msg += `*Delivery Address:* ${deliveryAddr}\n`;
+            if(trackingNo) msg += `*Courier Tracking:* ${trackingNo}\n`;
+            if(paymentStatus) msg += `*Payment Method:* ${paymentStatus}\n`;
+            msg += `-----------------------------------\n\n*ORDER ITEMS:*\n`;
             items.forEach((item, index) => { msg += `${index + 1}. *${item.desc}* (${item.war})\n   ${item.qty} x ${curr} ${item.price.toLocaleString()} = *${curr} ${item.total.toLocaleString()}*\n`; });
-            msg += `\n-----------------------------------\n💰 *TOTAL AMOUNT:* *${curr} ${subtotal.toLocaleString()}*\n-----------------------------------\n\nThank you for shopping with us!\n_${defaultConfig.footerSub}_`;
+            msg += `\n-----------------------------------\n*TOTAL AMOUNT:* *${curr} ${subtotal.toLocaleString()}*\n-----------------------------------\n\nThank you for shopping with us!\n_${defaultConfig.footerSub}_`;
 
             window.open(`https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`, '_blank');
         }
