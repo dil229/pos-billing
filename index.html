@@ -119,6 +119,16 @@
             <div class="input-grid" id="courier-fields-container" style="display: none;">
                 <input type="text" id="cust-address-input" placeholder="Delivery Address" oninput="updateHeader()">
                 <input type="text" id="courier-track-input" placeholder="Courier Tracking No (Optional)" oninput="updateHeader()">
+                
+                <!-- අලුතින් එකතු කළ Payment/Delivery Status Option එක -->
+                <div style="grid-column: span 2;">
+                    <select id="payment-status-input" onchange="updateHeader()">
+                        <option value="Cash on Delivery (COD)">Cash on Delivery (COD)</option>
+                        <option value="Paid (Online Transfer / Bank Deposit)">Paid (Online Transfer / Bank Deposit)</option>
+                        <option value="Paid (Card Payment)">Paid (Card Payment)</option>
+                        <option value="Advance Paid (Balance COD)">Advance Paid (Balance COD)</option>
+                    </select>
+                </div>
             </div>
 
             <div class="input-grid">
@@ -152,6 +162,7 @@
                 <p style="margin:2px 0;"><strong>Doc No:</strong> <span id="lbl-inv">INV-1001</span></p>
                 <p style="margin:2px 0;"><strong>Date:</strong> <span id="lbl-date"></span></p>
                 <p id="lbl-tracking-container" style="margin:2px 0; display:none; color: var(--theme-color);"><strong>Tracking #:</strong> <span id="lbl-tracking">-</span></p>
+                <p id="lbl-paystatus-container" style="margin:2px 0; display:none; color: var(--theme-color);"><strong>Payment Status:</strong> <span id="lbl-paystatus">-</span></p>
             </div>
         </div>
 
@@ -385,7 +396,6 @@
                 courierFieldsContainer.style.display = 'none';
             } else if (type === 'Online') {
                 document.body.classList.add('theme-online');
-                // Online Delivery ලෙස තෝරාගත් විට Delivery fields දර්ශනය වේ
                 courierFieldsContainer.style.display = 'grid';
             } else {
                 document.body.classList.add('theme-computer');
@@ -665,6 +675,13 @@
                 document.getElementById('lbl-tracking').innerText = trackInput.value;
                 document.getElementById('lbl-tracking-container').style.display = 'block';
             } else { document.getElementById('lbl-tracking-container').style.display = 'none'; }
+
+            const payStatusInput = document.getElementById('payment-status-input');
+            if (defaultConfig.bizType === 'Online' && payStatusInput && payStatusInput.value) {
+                document.getElementById('lbl-paystatus').innerText = payStatusInput.value;
+                document.getElementById('lbl-paystatus-container').style.display = 'block';
+            } else { document.getElementById('lbl-paystatus-container').style.display = 'none'; }
+
             calculateTotals();
         }
 
@@ -695,9 +712,10 @@
             const custPhone = document.getElementById('cust-phone-input').value || '-';
             const deliveryAddr = document.getElementById('cust-address-input').value || '';
             const trackingNo = document.getElementById('courier-track-input').value || '';
+            const paymentStatus = (defaultConfig.bizType === 'Online') ? (document.getElementById('payment-status-input').value || '') : '';
             const subtotal = items.reduce((sum, item) => sum + item.total, 0);
 
-            saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone, address: deliveryAddr, trackingNo, total: subtotal, items });
+            saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone, address: deliveryAddr, trackingNo, paymentStatus, total: subtotal, items });
 
             let num = parseInt(invNo.replace(/[^0-9]/g, '')) || 1000;
             localStorage.setItem('lastInvNo_' + defaultConfig.clientKey, num);
@@ -733,12 +751,14 @@
             const curr = defaultConfig.currency || 'Rs.';
             const deliveryAddr = document.getElementById('cust-address-input').value || '';
             const trackingNo = document.getElementById('courier-track-input').value || '';
+            const paymentStatus = (defaultConfig.bizType === 'Online') ? (document.getElementById('payment-status-input').value || '') : '';
 
-            saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone: rawPhone, address: deliveryAddr, trackingNo, total: subtotal, items });
+            saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone: rawPhone, address: deliveryAddr, trackingNo, paymentStatus, total: subtotal, items });
 
             let msg = `🛍️ *${defaultConfig.bizName.toUpperCase()}* 🛍️\n_${defaultConfig.bizSub}_\n-----------------------------------\n🧾 *INVOICE:* #${invNo}\n📅 *Date:* ${formattedDate}\n👤 *Customer:* ${custName}\n`;
             if(deliveryAddr) msg += `📍 *Delivery Address:* ${deliveryAddr}\n`;
             if(trackingNo) msg += `🚚 *Courier Tracking:* ${trackingNo}\n`;
+            if(paymentStatus) msg += `💳 *Payment Method:* ${paymentStatus}\n`;
             msg += `-----------------------------------\n\n📦 *ORDER ITEMS:*\n`;
             items.forEach((item, index) => { msg += `${index + 1}. *${item.desc}* (${item.war})\n   ${item.qty} x ${curr} ${item.price.toLocaleString()} = *${curr} ${item.total.toLocaleString()}*\n`; });
             msg += `\n-----------------------------------\n💰 *TOTAL AMOUNT:* *${curr} ${subtotal.toLocaleString()}*\n-----------------------------------\n\nThank you for shopping with us!\n_${defaultConfig.footerSub}_`;
@@ -754,10 +774,11 @@
             const custPhone = document.getElementById('cust-phone-input').value || '-';
             const deliveryAddr = document.getElementById('cust-address-input').value || '';
             const trackingNo = document.getElementById('courier-track-input').value || '';
+            const paymentStatus = (defaultConfig.bizType === 'Online') ? (document.getElementById('payment-status-input').value || '') : '';
             const subtotal = items.reduce((sum, item) => sum + item.total, 0);
 
             if(docType === 'INVOICE') {
-                saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone, address: deliveryAddr, trackingNo, total: subtotal, items });
+                saveInvoiceToCloud({ invNo, date: formattedDate, custName, custPhone, address: deliveryAddr, trackingNo, paymentStatus, total: subtotal, items });
             }
 
             const noPrintElements = document.querySelectorAll('.no-print');
@@ -863,6 +884,9 @@
             document.getElementById('cust-phone-input').value = inv.custPhone || '';
             document.getElementById('cust-address-input').value = inv.address || '';
             document.getElementById('courier-track-input').value = inv.trackingNo || '';
+            if (document.getElementById('payment-status-input') && inv.paymentStatus) {
+                document.getElementById('payment-status-input').value = inv.paymentStatus;
+            }
             
             items = inv.items || [];
             updateHeader();
